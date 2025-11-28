@@ -635,8 +635,8 @@
             }
             ctx.stroke();
 
-            // --- Draw Dynamic Envelope (Red Dashed + Fill) ---
-            // Construct full polygon for fill
+            // --- Construct Dynamic Envelope Polygon ---
+            // Construct full polygon for fill and collision detection
             const fullPoly = [];
             // Left side normal order
             polyCoords.left.x.forEach((x, i) => fullPoly.push({x: x, y: polyCoords.left.y[i]}));
@@ -645,6 +645,30 @@
                 fullPoly.push({x: polyCoords.right.x[i], y: polyCoords.right.y[i]});
             }
 
+            // --- Determine Global Pass/Fail for Fill Color ---
+            // --- MODIFICATION: Added Boundary / On Line check logic ---
+            let isInsideStatus = true;
+            let isOnBoundary = false;
+            const TOLERANCE_MM = 0.0000000001; // Distance tolerance to be considered "On Line"
+
+            if (fullPoly.length > 0 && studyPoints.length > 0) {
+                studyPoints.forEach((sp, idx) => {
+                    // Check if strictly inside
+                    const isInside = pointInPolygon(sp, fullPoly);
+                    if (!isInside) isInsideStatus = false;
+
+                    // Check if on boundary line (using the Envelope X we calculated)
+                    const res = results[idx];
+                    if (res && res.envX !== null) {
+                        const distToEnvelope = Math.abs(sp.x - res.envX);
+                        if (distToEnvelope <= TOLERANCE_MM) {
+                            isOnBoundary = true;
+                        }
+                    }
+                });
+            }
+
+            // --- Draw Dynamic Envelope (Filled based on status) ---
             ctx.beginPath();
             if(fullPoly.length) {
                 const s = toScreen(fullPoly[0].x, fullPoly[0].y);
@@ -656,8 +680,17 @@
                 ctx.closePath();
             }
 
-            // Fill
-            ctx.fillStyle = 'rgba(167, 243, 208, 0.4)'; // Light green transparent
+            // Fill based on Pass/Fail status
+            if (isOnBoundary) {
+                // MODIFICATION: Amber fill for "On Line"
+                ctx.fillStyle = 'rgba(245, 158, 11, 0.4)'; // Tailwind Amber-500
+            } else if (isInsideStatus) {
+                // Pass = Green
+                ctx.fillStyle = 'rgba(34, 197, 94, 0.4)'; // Tailwind Green-500 equivalent with opacity
+            } else {
+                // Fail = Red
+                ctx.fillStyle = 'rgba(239, 68, 68, 0.4)'; // Tailwind Red-500 equivalent with opacity
+            }
             ctx.fill();
             
             // Stroke
@@ -668,6 +701,7 @@
             ctx.setLineDash([]); // Reset
 
             // --- Check Containment & Draw Study Points ---
+            // Re-eval for "All Inside" strictly for badge text (boundary counts as pass usually, but we want to warn)
             let allInside = true;
             const clearanceHtml = [];
 
@@ -735,8 +769,11 @@
                     ctx.stroke();
 
                     const dist = Math.abs(sp.x - res.envX);
-                    // Usually "Clearance" implies gap to envelope. 
-                    clearanceHtml.push(`<div class="text-xs flex justify-between"><span>${sp.side.toUpperCase()} Env Δ:</span> <span class="font-mono text-purple-600 font-bold">${dist.toFixed(1)}mm</span></div>`);
+                    // Check local boundary condition for text styling
+                    const isLocalBoundary = dist <= TOLERANCE_MM;
+                    const textClass = isLocalBoundary ? "text-amber-600 font-extrabold bg-amber-100 px-1 rounded" : "text-purple-600 font-bold";
+                    
+                    clearanceHtml.push(`<div class="text-xs flex justify-between"><span>${sp.side.toUpperCase()} Env Δ:</span> <span class="font-mono ${textClass}">${dist.toFixed(1)}mm</span></div>`);
                 }
             });
 
@@ -745,6 +782,10 @@
             if (studyPoints.length === 0) {
                 badge.textContent = "No Points";
                 badge.className = "px-3 py-1 rounded font-bold text-sm bg-gray-200 text-gray-600";
+            } else if (isOnBoundary) {
+                // MODIFICATION: New Badge state for Boundary
+                badge.textContent = "BOUNDARY (On Line)";
+                badge.className = "px-3 py-1 rounded font-bold text-sm bg-yellow-200 text-yellow-800 border border-yellow-400";
             } else if (allInside) {
                 badge.textContent = "PASS (Inside)";
                 badge.className = "px-3 py-1 rounded font-bold text-sm bg-green-200 text-green-800 border border-green-400";
