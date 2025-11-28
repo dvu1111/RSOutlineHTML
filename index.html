@@ -39,12 +39,10 @@
 
     <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        <!-- LEFT PANEL: INPUTS -->
         <div class="lg:col-span-4 space-y-4 overflow-y-auto max-h-screen pr-2">
             
             <h1 class="text-xl font-bold mb-4 text-gray-900">Input Parameters</h1>
 
-            <!-- 1. Radius Input -->
             <div class="input-group">
                 <div class="input-row">
                     <input type="radio" name="rad_sel" checked class="mr-2">
@@ -53,7 +51,6 @@
                 </div>
             </div>
 
-            <!-- 2. Vehicle Dimensions -->
             <div class="input-group">
                 <div class="flex items-center gap-2 mb-1">
                     <div class="flex-1 flex items-center gap-1">
@@ -77,46 +74,67 @@
                 </div>
             </div>
 
-            <!-- 3. Outline Selection -->
             <div class="input-group">
-                <div class="flex justify-between mb-2 px-8 text-xs font-bold text-gray-500">
+                <!-- Header with explicit column widths to match rows -->
+                <div class="flex items-center gap-2 mb-2 px-1 text-xs font-bold text-gray-500">
+                    <span class="w-6"></span> <!-- Space for Radio -->
                     <span class="flex-1">Outline</span>
                     <span class="w-12 text-center">ID</span>
-                    <span class="w-20 text-center">L</span>
-                    <span class="w-20 text-center">B</span>
+                    <span class="w-16 text-center">L</span>
+                    <span class="w-16 text-center">B</span>
                 </div>
 
                 <div class="space-y-1">
-                    <div class="input-row hover:bg-gray-50 p-1">
-                        <input type="radio" name="outline_sel" id="rs1" class="mr-2" onchange="setOutline(1, 16200, 11000)">
-                        <label for="rs1" class="flex-1 cursor-pointer">RS1</label>
-                        <span class="text-xs text-gray-400 mx-2">ID:1</span>
+                    <!-- Row 1 -->
+                    <div class="flex items-center gap-2 hover:bg-gray-50 p-1 rounded">
+                        <input type="radio" name="outline_sel" id="rs1" class="w-4 h-4 cursor-pointer" onchange="setOutline(1, 16200, 11000)">
+                        <label for="rs1" class="flex-1 cursor-pointer font-medium text-sm">RS1</label>
+                        <span class="w-12 text-center text-xs text-gray-400">ID:1</span>
+                        <span class="w-16"></span> <!-- Empty L spacer -->
+                        <span class="w-16"></span> <!-- Empty B spacer -->
                     </div>
-                    <div class="input-row hover:bg-gray-50 p-1">
-                        <input type="radio" name="outline_sel" id="rs2" class="mr-2" onchange="setOutline(2, 19150, 14000)">
-                        <label for="rs2" class="flex-1 cursor-pointer">RS2</label>
-                        <span class="text-xs text-gray-400 mx-2">ID:2</span>
+                    <!-- Row 2 -->
+                    <div class="flex items-center gap-2 hover:bg-gray-50 p-1 rounded">
+                        <input type="radio" name="outline_sel" id="rs2" class="w-4 h-4 cursor-pointer" onchange="setOutline(2, 19150, 14000)">
+                        <label for="rs2" class="flex-1 cursor-pointer font-medium text-sm">RS2</label>
+                        <span class="w-12 text-center text-xs text-gray-400">ID:2</span>
+                        <span class="w-16"></span>
+                        <span class="w-16"></span>
                     </div>
-                    <div class="input-row hover:bg-gray-50 p-1">
-                        <input type="radio" name="outline_sel" id="rs3" class="mr-2" onchange="setOutline(3, 19150, 14000)">
-                        <label for="rs3" class="flex-1 cursor-pointer">RS3</label>
-                        <span class="text-xs text-gray-400 mx-2">ID:3</span>
+                    <!-- Row 3 -->
+                    <div class="flex items-center gap-2 hover:bg-gray-50 p-1 rounded">
+                        <input type="radio" name="outline_sel" id="rs3" class="w-4 h-4 cursor-pointer" onchange="setOutline(3, 19150, 14000)">
+                        <label for="rs3" class="flex-1 cursor-pointer font-medium text-sm">RS3</label>
+                        <span class="w-12 text-center text-xs text-gray-400">ID:3</span>
+                        <span class="w-16"></span>
+                        <span class="w-16"></span>
                     </div>
-                    <div class="input-row hover:bg-gray-50 p-1">
-                        <input type="radio" name="outline_sel" id="rs4" class="mr-2" checked onchange="setOutline(4, 21000, 15850)">
-                        <label for="rs4" class="flex-1 cursor-pointer">RS4</label>
-                        <span class="text-xs text-gray-400 mx-2">ID:4</span>
+                    <!-- Row 4 -->
+                    <div class="flex items-center gap-2 hover:bg-gray-50 p-1 rounded">
+                        <input type="radio" name="outline_sel" id="rs4" class="w-4 h-4 cursor-pointer" checked onchange="setOutline(4, 21000, 15850)">
+                        <label for="rs4" class="flex-1 cursor-pointer font-medium text-sm">RS4</label>
+                        <span class="w-12 text-center text-xs text-gray-400">ID:4</span>
+                        <span class="w-16"></span>
+                        <span class="w-16"></span>
                     </div>
                 </div>
 
-                <div class="border-t border-gray-200 mt-2 pt-2 grid grid-cols-3 gap-2">
-                    <div class="text-xs text-gray-500 flex items-center">Active:</div>
-                    <input type="number" id="input_L_outline" class="input-field w-full" value="21000">
-                    <input type="number" id="input_B_outline" class="input-field w-full" value="15850">
+                <!-- Active inputs with Labels explicitly beside them -->
+                <div class="border-t border-gray-200 mt-2 pt-2 flex items-center gap-2">
+                    <div class="text-xs font-bold text-gray-500 w-12">Active:</div>
+                    
+                    <div class="flex-1 flex items-center gap-1">
+                         <span class="text-xs font-bold text-gray-400">L</span>
+                         <input type="number" id="input_L_outline" class="input-field w-full" value="21000">
+                    </div>
+                    
+                    <div class="flex-1 flex items-center gap-1">
+                         <span class="text-xs font-bold text-gray-400">B</span>
+                         <input type="number" id="input_B_outline" class="input-field w-full" value="15850">
+                    </div>
                 </div>
             </div>
 
-            <!-- 4. Study Type -->
             <div class="input-group">
                 <div class="section-header">Study Type</div>
                 <div class="input-row">
@@ -131,7 +149,6 @@
                 </div>
             </div>
 
-            <!-- 5. Rollingstock Parameters -->
             <div class="input-group">
                 <div class="flex justify-between mb-2 px-2 text-xs font-bold text-gray-500">
                     <span class="w-20 text-center">Roll (deg)</span>
@@ -155,7 +172,6 @@
 
         </div>
 
-        <!-- RIGHT PANEL: VISUALIZATION -->
         <div class="lg:col-span-8 flex flex-col h-full">
             <div class="bg-white rounded-lg shadow-lg p-4 border border-gray-200 flex-1 flex flex-col">
                 <div class="flex justify-between items-center mb-4">
@@ -183,7 +199,6 @@
                     <div class="bg-gray-50 p-3 rounded border">
                          <h3 class="font-bold text-gray-700 border-b pb-1 mb-2">Clearance Info</h3>
                          <div id="clearance-details" class="space-y-1">
-                             <!-- Dynamic details populated by JS -->
                              Running...
                          </div>
                     </div>
@@ -337,7 +352,7 @@
         function runCalculation() {
             // 1. Gather Inputs
             const R_meters = parseFloat(document.getElementById('input_R').value);
-            const R_mm = R_meters * 1000; // CRITICAL FIX: Convert meters to mm
+            const R_mm = R_meters * 1000;
 
             const L_veh = parseFloat(document.getElementById('input_L_veh').value);
             const B_veh = parseFloat(document.getElementById('input_B_veh').value);
@@ -410,10 +425,6 @@
                     segPoints.forEach(p => {
                         // Apply Throw + Lat + Bounce
                         // tx = x + (lat + throw) * direction
-                        // Note: If lat/throw are positive values expanding outwards,
-                        // for Right(xMult=1), tx increases.
-                        // for Left(xMult=-1), tx decreases (becomes more negative).
-                        // Formula: x_new = x + (lat + throw) * xMult
                         
                         const tx = p.x + (lat + throwVal) * xMult;
                         
@@ -424,8 +435,9 @@
                         // Rotate
                         const rot = getRotatedCoords(tx, ty, tiltAngle, PIVOT_POINT.x, PIVOT_POINT.y);
                         
+                        // FIX: Use rotated X, but un-rotated Y (ty)
                         polyCoords[side].x.push(rot.x);
-                        polyCoords[side].y.push(rot.y);
+                        polyCoords[side].y.push(ty); 
                     });
                 }
             });
@@ -440,7 +452,6 @@
                 const tilt = (side === 'right') ? -roll : roll;
                 
                 // Which throw value to use for the POINT location?
-                // Logic from python: if study==1: plot(calc_ET), if study==2: plot(calc_CT)
                 const pointThrowVal = (studyType === 1) ? calc_ET : calc_CT;
                 
                 // Calculate raw position before rotation
@@ -451,24 +462,27 @@
                 // Rotate
                 const p_rot = getRotatedCoords(x_raw, y_pos, tilt, PIVOT_POINT.x, PIVOT_POINT.y);
                 
-                // Save for drawing
+                // FIX: Use rotated X, but un-rotated Y (y_pos) for the study point
                 studyPoints.push({
                     x: p_rot.x, 
-                    y: p_rot.y, 
+                    y: y_pos, // Kept unrotated per user request
                     side: side,
                     color: (studyType === 1 ? '#059669' : '#d946ef') // Green or Magenta
                 });
 
+                // Note: p_rot.y in results calculation below should also use unrotated Y if we want consistency for "Clearance" check
+                const y_check = y_pos; 
+
                 // --- Calculate Deltas ---
                 // 1. Static Delta
                 const staticPts = polyCoords[side].static_x.map((x, i) => ({x: x, y: polyCoords[side].static_y[i]}));
-                const staticX = getXAtY(p_rot.y, staticPts, side);
+                const staticX = getXAtY(y_check, staticPts, side);
                 
                 // 2. Envelope Delta
                 const envPts = polyCoords[side].x.map((x, i) => ({x: x, y: polyCoords[side].y[i]}));
-                const envX = getXAtY(p_rot.y, envPts, side);
+                const envX = getXAtY(y_check, envPts, side);
 
-                let res = { side: side, p: p_rot, staticX: staticX, envX: envX };
+                let res = { side: side, p: {x: p_rot.x, y: y_pos}, staticX: staticX, envX: envX };
                 results.push(res);
             });
 
