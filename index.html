@@ -8,10 +8,9 @@
     <style>
         /* Custom styles for the canvas and inputs */
         canvas {
-            border: 1px solid #9ca3af;
-            background-color: #ffffff;
+            display: block;
             width: 100%;
-            height: 600px;
+            height: 100%;
         }
         .input-group {
             @apply border border-gray-400 p-2 mb-4 rounded bg-white;
@@ -28,19 +27,20 @@
         .section-header {
             @apply font-bold text-gray-800 mb-2 border-b border-gray-200 pb-1;
         }
-        /* Custom radio button styling to match image vibe */
+        /* Custom radio button styling */
         input[type="radio"] {
             accent-color: #2563eb; 
             transform: scale(1.2);
         }
     </style>
 </head>
-<body class="bg-gray-50 p-4 font-sans text-gray-800">
+<body class="bg-gray-50 font-sans text-gray-800 h-screen w-screen overflow-hidden flex flex-col">
 
-    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <!-- MAIN LAYOUT CONTAINER (Full Width/Height) -->
+    <div class="flex-1 grid grid-cols-1 lg:grid-cols-12 h-full w-full">
         
-        <!-- CONTROL PANEL -->
-        <div class="lg:col-span-3 space-y-4 overflow-y-auto max-h-screen pr-2">
+        <!-- CONTROL PANEL (Scrollable Sidebar) -->
+        <div class="lg:col-span-3 h-full overflow-y-auto p-4 border-r border-gray-200 bg-gray-50 z-10 shadow-sm">
             
             <h1 class="text-xl font-bold mb-4 text-gray-900">Input Parameters</h1>
 
@@ -178,10 +178,11 @@
 
         </div>
 
-        <!-- VISUALIZATION PANEL -->
-        <div class="lg:col-span-9 flex flex-col h-full">
-            <div class="bg-white rounded-lg shadow-lg p-1 border border-gray-200 flex-1 flex flex-col">
-                <div class="relative flex-1 bg-white rounded overflow-hidden" style="min-height: 600px;">
+        <!-- VISUALIZATION PANEL (Fills Remaining Space) -->
+        <div class="lg:col-span-9 h-full p-4 flex flex-col bg-gray-50 overflow-hidden">
+            <div class="bg-white rounded-lg shadow-lg p-1 border border-gray-200 flex-1 flex flex-col relative overflow-hidden">
+                <!-- Canvas Container takes full height/width -->
+                <div class="relative w-full h-full">
                     <canvas id="plotCanvas"></canvas>
                 </div>
             </div>
@@ -486,11 +487,20 @@
             
             // Responsive sizing - check parent
             const parent = canvas.parentElement;
-            canvas.width = parent.clientWidth;
-            canvas.height = parent.clientHeight;
             
-            const width = canvas.width;
-            const height = canvas.height;
+            // High DPI (Retina) scaling logic
+            const dpr = window.devicePixelRatio || 1;
+            
+            // Set the canvas internal resolution to match screen density
+            canvas.width = parent.clientWidth * dpr;
+            canvas.height = parent.clientHeight * dpr;
+            
+            // Scale all drawing operations by dpr
+            ctx.scale(dpr, dpr);
+
+            // Use logical CSS pixels for width/height variables so the rest of the math works as expected
+            const width = parent.clientWidth;
+            const height = parent.clientHeight;
 
             ctx.clearRect(0, 0, width, height);
 
@@ -908,6 +918,11 @@
             if(inp.type === 'number') {
                 inp.addEventListener('input', runCalculation);
             }
+        });
+        
+        // Handle window resize to redraw canvas
+        window.addEventListener('resize', () => {
+             runCalculation();
         });
         
         // Initial Run
