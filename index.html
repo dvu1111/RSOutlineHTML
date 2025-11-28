@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Throw & Clearance Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the canvas and inputs */
+        canvas {
+            border: 1px solid #9ca3af;
+            background-color: #ffffff;
+            width: 100%;
+            height: 600px;
+        }
+        .input-group {
+            @apply border border-gray-400 p-2 mb-4 rounded bg-white;
+        }
+        .input-row {
+            @apply flex items-center gap-2 mb-2 text-sm;
+        }
+        .input-label {
+            @apply w-32 font-medium text-gray-700;
+        }
+        .input-field {
+            @apply border border-gray-300 rounded px-2 py-1 w-24 text-right focus:outline-none focus:border-blue-500;
+        }
+        .section-header {
+            @apply font-bold text-gray-800 mb-2 border-b border-gray-200 pb-1;
+        }
+        /* Custom radio button styling to match image vibe */
+        input[type="radio"] {
+            accent-color: #2563eb; 
+            transform: scale(1.2);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 p-4 font-sans text-gray-800">
+
+    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- LEFT PANEL: INPUTS -->
+        <div class="lg:col-span-4 space-y-4 overflow-y-auto max-h-screen pr-2">
+            
+            <h1 class="text-xl font-bold mb-4 text-gray-900">Input Parameters</h1>
+
+            <!-- 1. Radius Input -->
+            <div class="input-group">
+                <div class="input-row">
+                    <input type="radio" name="rad_sel" checked class="mr-2">
+                    <span class="font-bold mr-auto">Radius (R) [m]</span>
+                    <input type="number" id="input_R" value="100" class="input-field w-32">
+                </div>
+            </div>
+
+            <!-- 2. Vehicle Dimensions -->
+            <div class="input-group">
+                <div class="flex justify-between mb-2 px-8 text-xs font-bold text-gray-500">
+                    <span class="w-20 text-center">L_veh</span>
+                    <span class="w-20 text-center">B_veh</span>
+                    <span class="w-16 text-center">h</span>
+                    <span class="w-16 text-center">w</span>
+                </div>
+                
+                <div class="input-row hover:bg-gray-50 p-1 rounded">
+                    <input type="radio" name="veh_preset" id="veh1" class="mr-2" onchange="setVehicle(16200, 11000, 400, 2540)">
+                    <label for="veh1" class="flex-1 cursor-pointer">Study vehicle #1</label>
+                </div>
+                
+                <div class="input-row hover:bg-gray-50 p-1 rounded">
+                    <input type="radio" name="veh_preset" id="veh2" class="mr-2" checked onchange="setVehicle(21000, 15850, 400, 2540)">
+                    <label for="veh2" class="flex-1 cursor-pointer">Study vehicle #2</label>
+                </div>
+
+                <div class="border-t border-gray-200 mt-2 pt-2 grid grid-cols-4 gap-2">
+                    <input type="number" id="input_L_veh" class="input-field w-full" value="21000">
+                    <input type="number" id="input_B_veh" class="input-field w-full" value="15850">
+                    <input type="number" id="input_h" class="input-field w-full" value="400">
+                    <input type="number" id="input_w" class="input-field w-full" value="2540">
+                </div>
+            </div>
+
+            <!-- 3. Outline Selection -->
+            <div class="input-group">
+                <div class="flex justify-between mb-2 px-8 text-xs font-bold text-gray-500">
+                    <span class="flex-1">Outline</span>
+                    <span class="w-12 text-center">ID</span>
+                    <span class="w-20 text-center">L</span>
+                    <span class="w-20 text-center">B</span>
+                </div>
+
+                <div class="space-y-1">
+                    <div class="input-row hover:bg-gray-50 p-1">
+                        <input type="radio" name="outline_sel" id="rs1" class="mr-2" onchange="setOutline(1, 16200, 11000)">
+                        <label for="rs1" class="flex-1 cursor-pointer">RS1</label>
+                        <span class="text-xs text-gray-400 mx-2">ID:1</span>
+                    </div>
+                    <div class="input-row hover:bg-gray-50 p-1">
+                        <input type="radio" name="outline_sel" id="rs2" class="mr-2" onchange="setOutline(2, 19150, 14000)">
+                        <label for="rs2" class="flex-1 cursor-pointer">RS2</label>
+                        <span class="text-xs text-gray-400 mx-2">ID:2</span>
+                    </div>
+                    <div class="input-row hover:bg-gray-50 p-1">
+                        <input type="radio" name="outline_sel" id="rs3" class="mr-2" onchange="setOutline(3, 19150, 14000)">
+                        <label for="rs3" class="flex-1 cursor-pointer">RS3</label>
+                        <span class="text-xs text-gray-400 mx-2">ID:3</span>
+                    </div>
+                    <div class="input-row hover:bg-gray-50 p-1">
+                        <input type="radio" name="outline_sel" id="rs4" class="mr-2" checked onchange="setOutline(4, 21000, 15850)">
+                        <label for="rs4" class="flex-1 cursor-pointer">RS4</label>
+                        <span class="text-xs text-gray-400 mx-2">ID:4</span>
+                    </div>
+                </div>
+
+                <div class="border-t border-gray-200 mt-2 pt-2 grid grid-cols-3 gap-2">
+                    <div class="text-xs text-gray-500 flex items-center">Active:</div>
+                    <input type="number" id="input_L_outline" class="input-field w-full" value="21000">
+                    <input type="number" id="input_B_outline" class="input-field w-full" value="15850">
+                </div>
+            </div>
+
+            <!-- 4. Study Type -->
+            <div class="input-group">
+                <div class="section-header">Study Type</div>
+                <div class="input-row">
+                    <input type="radio" name="study_type" id="study1" value="1" class="mr-2" onchange="runCalculation()">
+                    <label for="study1" class="flex-1 cursor-pointer">End Throw</label>
+                    <span class="bg-gray-100 text-gray-600 px-2 rounded text-xs">ID: 1</span>
+                </div>
+                <div class="input-row">
+                    <input type="radio" name="study_type" id="study2" value="2" checked class="mr-2" onchange="runCalculation()">
+                    <label for="study2" class="flex-1 cursor-pointer">Centre Throw</label>
+                    <span class="bg-gray-100 text-gray-600 px-2 rounded text-xs">ID: 2</span>
+                </div>
+            </div>
+
+            <!-- 5. Rollingstock Parameters -->
+            <div class="input-group">
+                <div class="flex justify-between mb-2 px-2 text-xs font-bold text-gray-500">
+                    <span class="w-20 text-center">Roll (deg)</span>
+                    <span class="w-20 text-center">Lat (mm)</span>
+                    <span class="w-20 text-center">Bounce (mm)</span>
+                </div>
+                <div class="input-row">
+                    <input type="radio" checked disabled class="mr-2 opacity-50">
+                    <label class="flex-1 text-sm">Parameters</label>
+                </div>
+                <div class="grid grid-cols-3 gap-2 pt-1">
+                    <input type="number" id="input_roll" class="input-field w-full" value="0" step="0.1">
+                    <input type="number" id="input_lat" class="input-field w-full" value="0">
+                    <input type="number" id="input_bounce" class="input-field w-full" value="0">
+                </div>
+            </div>
+            
+            <button onclick="runCalculation()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow mt-2">
+                Calculate & Plot
+            </button>
+
+        </div>
+
+        <!-- RIGHT PANEL: VISUALIZATION -->
+        <div class="lg:col-span-8 flex flex-col h-full">
+            <div class="bg-white rounded-lg shadow-lg p-4 border border-gray-200 flex-1 flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold text-gray-800">Visualization Output</h2>
+                    <div id="status-badge" class="px-3 py-1 rounded font-bold text-sm bg-gray-200 text-gray-600">
+                        Ready
+                    </div>
+                </div>
+                
+                <div class="relative flex-1 bg-white rounded border border-gray-200 overflow-hidden" style="min-height: 500px;">
+                    <canvas id="plotCanvas"></canvas>
+                    <div class="absolute top-2 right-2 bg-white/90 p-2 rounded shadow text-xs pointer-events-none border border-gray-300">
+                        <div class="flex items-center gap-2 mb-1"><div class="w-3 h-3 bg-blue-500 opacity-50"></div> Static Vehicle</div>
+                        <div class="flex items-center gap-2 mb-1"><div class="w-3 h-3 bg-green-200 border border-red-500 border-dashed"></div> Throw Envelope</div>
+                        <div class="flex items-center gap-2 mb-1"><div class="w-3 h-3 text-green-600 font-bold text-center leading-3">+</div> End/Centre Point</div>
+                    </div>
+                </div>
+
+                <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div class="bg-gray-50 p-3 rounded border">
+                        <h3 class="font-bold text-gray-700 border-b pb-1 mb-2">Calculated Values</h3>
+                        <p>End Throw (ET): <span id="val_ET" class="font-mono">0.00</span> mm</p>
+                        <p>Centre Throw (CT): <span id="val_CT" class="font-mono">0.00</span> mm</p>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded border">
+                         <h3 class="font-bold text-gray-700 border-b pb-1 mb-2">Clearance Info</h3>
+                         <div id="clearance-details" class="space-y-1">
+                             <!-- Dynamic details populated by JS -->
+                             Running...
+                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =================================================================
+        // 1. DATA & CONSTANTS
+        // =================================================================
+        
+        const PIVOT_POINT = { x: 0, y: 1100 };
+
+        // Parsed Outline Data
+        const OUTLINE_DATA_SETS = {
+            1: [
+                {x:0,y:65,type:1}, {x:1195,y:65,type:1}, {x:1245,y:180,type:1},
+                {x:1245,y:305,type:1}, {x:1270,y:305,type:1}, {x:1270,y:535,type:1},
+                {x:1220,y:535,type:1}, {x:1220,y:825,type:1}, {x:1315,y:915,type:1},
+                {x:1425,y:915,type:1}, 
+                {x:1425,y:3250,type:2, cx:-328, cy:1468, r:2500},
+                {x:250,y:3900,type:1}, {x:0,y:3900,type:1}
+            ],
+            2: [
+                {x:0,y:65,type:1}, {x:1195,y:65,type:1}, {x:1245,y:180,type:1},
+                {x:1245,y:305,type:1}, {x:1270,y:305,type:1}, {x:1270,y:535,type:1},
+                {x:1245,y:535,type:1}, {x:1245,y:845,type:1}, {x:1315,y:915,type:1},
+                {x:1450,y:915,type:1}, {x:1450,y:2845,type:1}, {x:1412,y:3415,type:1},
+                {x:1040,y:3900,type:1}, {x:0,y:3900,type:1}
+            ],
+            3: [
+                {x:0,y:65,type:1}, {x:1195,y:65,type:1}, {x:1245,y:180,type:1},
+                {x:1245,y:305,type:1}, {x:1270,y:305,type:1}, {x:1270,y:535,type:1},
+                {x:1245,y:535,type:1}, {x:1245,y:845,type:1}, {x:1315,y:915,type:1},
+                {x:1450,y:915,type:1}, {x:1450,y:2845,type:1}, {x:1400,y:3600,type:1},
+                {x:1080,y:3900,type:1}, {x:0,y:3900,type:1}
+            ],
+            4: [
+                {x:0,y:65,type:1}, {x:1195,y:65,type:1}, {x:1245,y:180,type:1},
+                {x:1245,y:305,type:1}, {x:1270,y:305,type:1}, {x:1270,y:535,type:1},
+                {x:1245,y:535,type:1}, {x:1245,y:845,type:1}, {x:1315,y:915,type:1},
+                {x:1430,y:915,type:1}, {x:1430,y:1850,type:1}, {x:1350,y:3250,type:1},
+                {x:1000,y:3584.9943,type:2, cx:-328, cy:1468, r:2500},
+                {x:247,y:3900,type:1}, {x:0,y:3900,type:1}
+            ]
+        };
+
+        let currentOutlineId = 4;
+
+        // =================================================================
+        // 2. MATH HELPERS
+        // =================================================================
+
+        function radians(deg) { return deg * Math.PI / 180; }
+
+        function getRotatedCoords(x, y, angleDeg, cx, cy) {
+            const rad = radians(angleDeg);
+            const c = Math.cos(rad);
+            const s = Math.sin(rad);
+            const dx = x - cx;
+            const dy = y - cy;
+            return {
+                x: cx + dx * c - dy * s,
+                y: cy + dx * s + dy * c
+            };
+        }
+
+        function getArcPoints(pStart, pEnd, cx, cy, radius, numPoints = 20) {
+            let startAngle = Math.atan2(pStart.y - cy, pStart.x - cx);
+            let endAngle = Math.atan2(pEnd.y - cy, pEnd.x - cx);
+
+            // Handle wrapping across PI/-PI boundary
+            if (Math.abs(endAngle - startAngle) > Math.PI) {
+                if (endAngle > startAngle) startAngle += 2 * Math.PI;
+                else endAngle += 2 * Math.PI;
+            }
+
+            const points = [];
+            for (let i = 0; i <= numPoints; i++) {
+                const t = startAngle + (endAngle - startAngle) * (i / numPoints);
+                points.push({
+                    x: cx + radius * Math.cos(t),
+                    y: cy + radius * Math.sin(t)
+                });
+            }
+            return points;
+        }
+
+        // Linear interpolation to find X at a given Y
+        function getXAtY(targetY, polyPoints, side = 'right') {
+            const intersections = [];
+            for (let i = 0; i < polyPoints.length - 1; i++) {
+                const p1 = polyPoints[i];
+                const p2 = polyPoints[i+1];
+
+                const y1 = p1.y, y2 = p2.y;
+                const x1 = p1.x, x2 = p2.x;
+
+                // Check interval
+                if ((y1 <= targetY && targetY <= y2) || (y2 <= targetY && targetY <= y1)) {
+                    if (y1 === y2) {
+                        intersections.push(x1, x2);
+                    } else {
+                        const slope = (x2 - x1) / (y2 - y1);
+                        const x = x1 + (targetY - y1) * slope;
+                        intersections.push(x);
+                    }
+                }
+            }
+
+            if (intersections.length === 0) return null;
+            return side === 'right' ? Math.max(...intersections) : Math.min(...intersections);
+        }
+
+        // Point inside polygon (Ray casting)
+        function pointInPolygon(point, vs) {
+            let x = point.x, y = point.y;
+            let inside = false;
+            for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+                let xi = vs[i].x, yi = vs[i].y;
+                let xj = vs[j].x, yj = vs[j].y;
+                
+                let intersect = ((yi > y) != (yj > y))
+                    && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+                if (intersect) inside = !inside;
+            }
+            return inside;
+        }
+
+        // =================================================================
+        // 3. UI HANDLERS
+        // =================================================================
+
+        function setVehicle(L, B, h, w) {
+            document.getElementById('input_L_veh').value = L;
+            document.getElementById('input_B_veh').value = B;
+            document.getElementById('input_h').value = h;
+            document.getElementById('input_w').value = w;
+            runCalculation();
+        }
+
+        function setOutline(id, L, B) {
+            currentOutlineId = id;
+            document.getElementById('input_L_outline').value = L;
+            document.getElementById('input_B_outline').value = B;
+            runCalculation();
+        }
+
+        function runCalculation() {
+            // 1. Gather Inputs
+            const R_meters = parseFloat(document.getElementById('input_R').value);
+            const R_mm = R_meters * 1000; // CRITICAL FIX: Convert meters to mm
+
+            const L_veh = parseFloat(document.getElementById('input_L_veh').value);
+            const B_veh = parseFloat(document.getElementById('input_B_veh').value);
+            const h = parseFloat(document.getElementById('input_h').value);
+            const w = parseFloat(document.getElementById('input_w').value);
+            
+            const L_outline = parseFloat(document.getElementById('input_L_outline').value);
+            const B_outline = parseFloat(document.getElementById('input_B_outline').value);
+            
+            const studyType = parseInt(document.querySelector('input[name="study_type"]:checked').value);
+            const roll = parseFloat(document.getElementById('input_roll').value);
+            const lat = parseFloat(document.getElementById('input_lat').value);
+            const bounce = parseFloat(document.getElementById('input_bounce').value);
+
+            // 2. Calculate Throws
+            let calc_ET = 0, calc_CT = 0;
+            if (R_mm !== 0) {
+                // Formula: (L^2 - B^2) / 8R  (All units must be same, usually mm)
+                calc_ET = (Math.pow(L_outline, 2) - Math.pow(B_outline, 2)) / (8 * R_mm);
+                calc_CT = Math.pow(B_outline, 2) / (8 * R_mm);
+            }
+
+            document.getElementById('val_ET').textContent = calc_ET.toFixed(2);
+            document.getElementById('val_CT').textContent = calc_CT.toFixed(2);
+
+            // 3. Prepare Outline Data
+            const rawPoints = OUTLINE_DATA_SETS[currentOutlineId];
+            if(!rawPoints) return;
+
+            // Find min/max y for normalization
+            const ys = rawPoints.map(p => p.y);
+            const minY = Math.min(...ys);
+            const maxY = Math.max(...ys);
+            const vHeight = (maxY - minY) || 1;
+            
+            // 4. Generate Polygons
+            const polyCoords = { left: {x:[], y:[], static_x:[], static_y:[]}, right: {x:[], y:[], static_x:[], static_y:[]} };
+
+            ['right', 'left'].forEach(side => {
+                const xMult = (side === 'right') ? 1 : -1;
+                const tiltAngle = (side === 'right') ? -roll : roll;
+                const throwVal = (studyType === 1) ? calc_ET : ((studyType === 2) ? calc_CT : 0);
+
+                // We need to iterate segments
+                for(let i=0; i<rawPoints.length-1; i++) {
+                    const curr = rawPoints[i];
+                    const next = rawPoints[i+1];
+                    
+                    const sx1 = curr.x * xMult, sy1 = curr.y;
+                    const sx2 = next.x * xMult, sy2 = next.y;
+                    
+                    let segPoints = [];
+                    // Generate points for this segment (Static)
+                    if(curr.type === 1) {
+                        segPoints.push({x: sx1, y: sy1});
+                        segPoints.push({x: sx2, y: sy2});
+                    } else if(curr.type === 2) {
+                        const cx = curr.cx * xMult;
+                        const arcPts = getArcPoints({x:sx1, y:sy1}, {x:sx2, y:sy2}, cx, curr.cy, curr.r);
+                        segPoints = arcPts;
+                    }
+                    
+                    // Store Static (Flattened)
+                    segPoints.forEach(p => {
+                        polyCoords[side].static_x.push(p.x);
+                        polyCoords[side].static_y.push(p.y);
+                    });
+
+                    // Transform for Dynamic (Throw Loop)
+                    segPoints.forEach(p => {
+                        // Apply Throw + Lat + Bounce
+                        // tx = x + (lat + throw) * direction
+                        // Note: If lat/throw are positive values expanding outwards,
+                        // for Right(xMult=1), tx increases.
+                        // for Left(xMult=-1), tx decreases (becomes more negative).
+                        // Formula: x_new = x + (lat + throw) * xMult
+                        
+                        const tx = p.x + (lat + throwVal) * xMult;
+                        
+                        // ty = y + normalized_height * bounce
+                        const normH = (p.y - minY) / vHeight;
+                        const ty = p.y + normH * bounce;
+
+                        // Rotate
+                        const rot = getRotatedCoords(tx, ty, tiltAngle, PIVOT_POINT.x, PIVOT_POINT.y);
+                        
+                        polyCoords[side].x.push(rot.x);
+                        polyCoords[side].y.push(rot.y);
+                    });
+                }
+            });
+
+            // 5. Calculate Study Points (The points we check for clearance)
+            const h_bounced = h + ((h - minY) / vHeight) * bounce;
+            const studyPoints = [];
+            const results = [];
+
+            ['right', 'left'].forEach(side => {
+                const xMult = (side === 'right') ? 1 : -1;
+                const tilt = (side === 'right') ? -roll : roll;
+                
+                // Which throw value to use for the POINT location?
+                // Logic from python: if study==1: plot(calc_ET), if study==2: plot(calc_CT)
+                const pointThrowVal = (studyType === 1) ? calc_ET : calc_CT;
+                
+                // Calculate raw position before rotation
+                // x = (lat + w/2 + offset) * side
+                const x_raw = (lat + (w/2) + pointThrowVal) * xMult;
+                const y_pos = h_bounced;
+
+                // Rotate
+                const p_rot = getRotatedCoords(x_raw, y_pos, tilt, PIVOT_POINT.x, PIVOT_POINT.y);
+                
+                // Save for drawing
+                studyPoints.push({
+                    x: p_rot.x, 
+                    y: p_rot.y, 
+                    side: side,
+                    color: (studyType === 1 ? '#059669' : '#d946ef') // Green or Magenta
+                });
+
+                // --- Calculate Deltas ---
+                // 1. Static Delta
+                const staticPts = polyCoords[side].static_x.map((x, i) => ({x: x, y: polyCoords[side].static_y[i]}));
+                const staticX = getXAtY(p_rot.y, staticPts, side);
+                
+                // 2. Envelope Delta
+                const envPts = polyCoords[side].x.map((x, i) => ({x: x, y: polyCoords[side].y[i]}));
+                const envX = getXAtY(p_rot.y, envPts, side);
+
+                let res = { side: side, p: p_rot, staticX: staticX, envX: envX };
+                results.push(res);
+            });
+
+            // 6. Draw
+            draw(polyCoords, studyPoints, results);
+        }
+
+        // =================================================================
+        // 4. DRAWING
+        // =================================================================
+
+        function draw(polyCoords, studyPoints, results) {
+            const canvas = document.getElementById('plotCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Responsive sizing
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+            const width = canvas.width;
+            const height = canvas.height;
+
+            ctx.clearRect(0, 0, width, height);
+
+            // --- Coordinate System Setup ---
+            // Auto-scale to fit
+            // Gather all points (static + dynamic) to find bounds
+            let allX = [], allY = [];
+            
+            // Add pivot
+            allX.push(PIVOT_POINT.x); allY.push(PIVOT_POINT.y);
+
+            ['right', 'left'].forEach(s => {
+                allX.push(...polyCoords[s].x, ...polyCoords[s].static_x);
+                allY.push(...polyCoords[s].y, ...polyCoords[s].static_y);
+            });
+            
+            // Add study points
+            studyPoints.forEach(sp => { allX.push(sp.x); allY.push(sp.y); });
+
+            const minX = Math.min(...allX);
+            const maxX = Math.max(...allX);
+            const minY = Math.min(...allY);
+            const maxY = Math.max(...allY);
+
+            // Add margin
+            const margin = 400; // mm units approx
+            const dataW = (maxX - minX) + margin * 2;
+            const dataH = (maxY - minY) + margin * 2;
+            
+            // Scale
+            const scaleX = width / dataW;
+            const scaleY = height / dataH;
+            const scale = Math.min(scaleX, scaleY) * 0.95; // 95% fill
+
+            const cx = width / 2;
+            const cy = height / 2;
+            const dataCx = (minX + maxX) / 2;
+            const dataCy = (minY + maxY) / 2;
+
+            function toScreen(x, y) {
+                // Flip Y for canvas
+                return {
+                    x: cx + (x - dataCx) * scale,
+                    y: cy - (y - dataCy) * scale 
+                };
+            }
+
+            // --- Draw Grid & Axes ---
+            ctx.save();
+            ctx.strokeStyle = '#e5e7eb';
+            ctx.lineWidth = 1;
+            
+            // Draw Grid Lines (Approx every 500mm or 1000mm depending on scale)
+            // Just basic grid for now
+            const gridSize = 1000; // 1m
+            const startGridX = Math.floor(minX/gridSize)*gridSize;
+            const startGridY = Math.floor(minY/gridSize)*gridSize;
+
+            ctx.font = '10px sans-serif';
+            ctx.fillStyle = '#9ca3af';
+            ctx.textAlign = 'center';
+
+            for(let gx = startGridX; gx <= maxX + margin; gx += gridSize) {
+                const p = toScreen(gx, 0);
+                if(p.x >= 0 && p.x <= width) {
+                    ctx.beginPath();
+                    ctx.moveTo(p.x, 0); ctx.lineTo(p.x, height);
+                    ctx.stroke();
+                    ctx.fillText(gx, p.x, height - 5);
+                }
+            }
+            for(let gy = startGridY; gy <= maxY + margin; gy += gridSize) {
+                const p = toScreen(0, gy);
+                if(p.y >= 0 && p.y <= height) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, p.y); ctx.lineTo(width, p.y);
+                    ctx.stroke();
+                    ctx.textAlign = 'left';
+                    ctx.fillText(gy, 5, p.y - 2);
+                }
+            }
+
+            // Axis Lines (X=0, Y=0 is usually below pivot)
+            const origin = toScreen(0, 0); // Y=0 line
+            const yAxis = toScreen(0, 0); // X=0 line
+
+            ctx.strokeStyle = '#6b7280';
+            ctx.lineWidth = 1.5;
+            // X=0
+            ctx.beginPath(); ctx.moveTo(yAxis.x, 0); ctx.lineTo(yAxis.x, height); ctx.stroke();
+            // Y=0 is theoretically far down, might not be visible
+            
+            ctx.restore();
+
+
+            // --- Draw Pivot ---
+            const piv = toScreen(PIVOT_POINT.x, PIVOT_POINT.y);
+            ctx.fillStyle = 'black';
+            ctx.beginPath();
+            ctx.arc(piv.x, piv.y, 4, 0, 2*Math.PI);
+            ctx.fill();
+            ctx.fillStyle = '#000';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.fillText("Pivot", piv.x + 8, piv.y + 4);
+
+            // --- Draw Static Vehicle (Blue) ---
+            ctx.strokeStyle = '#3b82f6'; // Blue-500
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            // Left static
+            const leftStatic = polyCoords.left.static_x.map((x, i) => ({x, y: polyCoords.left.static_y[i]}));
+            if(leftStatic.length) {
+                const start = toScreen(leftStatic[0].x, leftStatic[0].y);
+                ctx.moveTo(start.x, start.y);
+                for(let i=1; i<leftStatic.length; i++) {
+                    const p = toScreen(leftStatic[i].x, leftStatic[i].y);
+                    ctx.lineTo(p.x, p.y);
+                }
+            }
+            // Right static
+            const rightStatic = polyCoords.right.static_x.map((x, i) => ({x, y: polyCoords.right.static_y[i]}));
+            if(rightStatic.length) {
+                 const start = toScreen(rightStatic[0].x, rightStatic[0].y);
+                 ctx.moveTo(start.x, start.y);
+                 for(let i=1; i<rightStatic.length; i++) {
+                     const p = toScreen(rightStatic[i].x, rightStatic[i].y);
+                     ctx.lineTo(p.x, p.y);
+                 }
+            }
+            ctx.stroke();
+
+            // --- Draw Dynamic Envelope (Red Dashed + Fill) ---
+            // Construct full polygon for fill
+            const fullPoly = [];
+            // Left side normal order
+            polyCoords.left.x.forEach((x, i) => fullPoly.push({x: x, y: polyCoords.left.y[i]}));
+            // Right side REVERSE order to close loop nicely at top/bottom
+            for(let i = polyCoords.right.x.length - 1; i >= 0; i--) {
+                fullPoly.push({x: polyCoords.right.x[i], y: polyCoords.right.y[i]});
+            }
+
+            ctx.beginPath();
+            if(fullPoly.length) {
+                const s = toScreen(fullPoly[0].x, fullPoly[0].y);
+                ctx.moveTo(s.x, s.y);
+                for(let i=1; i<fullPoly.length; i++) {
+                    const p = toScreen(fullPoly[i].x, fullPoly[i].y);
+                    ctx.lineTo(p.x, p.y);
+                }
+                ctx.closePath();
+            }
+
+            // Fill
+            ctx.fillStyle = 'rgba(167, 243, 208, 0.4)'; // Light green transparent
+            ctx.fill();
+            
+            // Stroke
+            ctx.strokeStyle = '#ef4444'; // Red-500
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([5, 5]);
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset
+
+            // --- Check Containment & Draw Study Points ---
+            let allInside = true;
+            const clearanceHtml = [];
+
+            studyPoints.forEach((sp, idx) => {
+                const scr = toScreen(sp.x, sp.y);
+                
+                // Check Polygon Containment
+                const isInside = pointInPolygon(sp, fullPoly);
+                if(!isInside) allInside = false;
+
+                // Draw Marker
+                ctx.strokeStyle = sp.color;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(scr.x - 8, scr.y); ctx.lineTo(scr.x + 8, scr.y);
+                ctx.moveTo(scr.x, scr.y - 8); ctx.lineTo(scr.x, scr.y + 8);
+                ctx.stroke();
+
+                // Draw Coordinates Text
+                ctx.fillStyle = '#111827';
+                ctx.font = 'bold 11px sans-serif';
+                ctx.textAlign = sp.side === 'right' ? 'left' : 'right';
+                // Adjust label position slightly to avoid overlap
+                const xOff = sp.side === 'right' ? 12 : -12;
+                ctx.fillText(`(${sp.x.toFixed(0)}, ${sp.y.toFixed(0)})`, scr.x + xOff, scr.y - 10);
+
+                // --- Draw Delta Lines ---
+                const res = results[idx];
+                
+                // 1. Static Delta Line (Red Dotted)
+                if(res.staticX !== null) {
+                    const statScr = toScreen(res.staticX, sp.y);
+                    ctx.beginPath();
+                    ctx.strokeStyle = 'red';
+                    ctx.lineWidth = 1.5;
+                    ctx.setLineDash([2, 2]);
+                    ctx.moveTo(statScr.x, statScr.y);
+                    ctx.lineTo(scr.x, scr.y);
+                    ctx.stroke();
+                    
+                    // Small dot at intersection
+                    ctx.fillStyle = 'red';
+                    ctx.beginPath(); ctx.arc(statScr.x, statScr.y, 3, 0, 2*Math.PI); ctx.fill();
+
+                    const dist = Math.abs(sp.x - res.staticX);
+                    clearanceHtml.push(`<div class="text-xs flex justify-between"><span>${sp.side.toUpperCase()} Static Δ:</span> <span class="font-mono text-red-600 font-bold">${dist.toFixed(1)}mm</span></div>`);
+                }
+
+                // 2. Env Delta Line (Purple Dashed)
+                if(res.envX !== null) {
+                    const envScr = toScreen(res.envX, sp.y);
+                    ctx.beginPath();
+                    ctx.strokeStyle = 'purple';
+                    ctx.lineWidth = 1.5;
+                    ctx.setLineDash([4, 4]);
+                    ctx.moveTo(envScr.x, envScr.y);
+                    ctx.lineTo(scr.x, scr.y);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    
+                    // Small X at intersection
+                    ctx.beginPath(); 
+                    ctx.moveTo(envScr.x-3, envScr.y-3); ctx.lineTo(envScr.x+3, envScr.y+3);
+                    ctx.moveTo(envScr.x+3, envScr.y-3); ctx.lineTo(envScr.x-3, envScr.y+3);
+                    ctx.stroke();
+
+                    const dist = Math.abs(sp.x - res.envX);
+                    // Usually "Clearance" implies gap to envelope. 
+                    clearanceHtml.push(`<div class="text-xs flex justify-between"><span>${sp.side.toUpperCase()} Env Δ:</span> <span class="font-mono text-purple-600 font-bold">${dist.toFixed(1)}mm</span></div>`);
+                }
+            });
+
+            // Update DOM Status
+            const badge = document.getElementById('status-badge');
+            if (studyPoints.length === 0) {
+                badge.textContent = "No Points";
+                badge.className = "px-3 py-1 rounded font-bold text-sm bg-gray-200 text-gray-600";
+            } else if (allInside) {
+                badge.textContent = "PASS (Inside)";
+                badge.className = "px-3 py-1 rounded font-bold text-sm bg-green-200 text-green-800 border border-green-400";
+            } else {
+                badge.textContent = "FAIL (Outside)";
+                badge.className = "px-3 py-1 rounded font-bold text-sm bg-red-200 text-red-800 border border-red-400";
+            }
+
+            document.getElementById('clearance-details').innerHTML = clearanceHtml.join('');
+        }
+
+        // --- Init ---
+        // Add event listeners to all inputs to trigger recalc
+        document.querySelectorAll('input').forEach(inp => {
+            if(inp.type === 'number') {
+                inp.addEventListener('input', runCalculation);
+            }
+        });
+        
+        // Initial Run
+        window.onload = runCalculation;
+
+    </script>
+</body>
+</html>
