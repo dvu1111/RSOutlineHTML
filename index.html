@@ -39,7 +39,8 @@
 
     <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        <div class="lg:col-span-4 space-y-4 overflow-y-auto max-h-screen pr-2">
+        <!-- CONTROL PANEL -->
+        <div class="lg:col-span-3 space-y-4 overflow-y-auto max-h-screen pr-2">
             
             <h1 class="text-xl font-bold mb-4 text-gray-900">Input Parameters</h1>
 
@@ -170,69 +171,18 @@
                 Calculate & Plot
             </button>
 
+             <!-- Removed text-based output, moved to canvas -->
+             <div class="mt-4 text-xs text-gray-400 text-center">
+                 Calculated values are now displayed directly on the graph.
+             </div>
+
         </div>
 
-        <div class="lg:col-span-8 flex flex-col h-full">
-            <div class="bg-white rounded-lg shadow-lg p-4 border border-gray-200 flex-1 flex flex-col">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-lg font-bold text-gray-800">Visualization Output</h2>
-                    <div id="status-badge" class="px-3 py-1 rounded font-bold text-sm bg-gray-200 text-gray-600">
-                        Ready
-                    </div>
-                </div>
-                
-                <div class="relative flex-1 bg-white rounded border border-gray-200 overflow-hidden" style="min-height: 500px;">
+        <!-- VISUALIZATION PANEL -->
+        <div class="lg:col-span-9 flex flex-col h-full">
+            <div class="bg-white rounded-lg shadow-lg p-1 border border-gray-200 flex-1 flex flex-col">
+                <div class="relative flex-1 bg-white rounded overflow-hidden" style="min-height: 600px;">
                     <canvas id="plotCanvas"></canvas>
-                    <div class="absolute top-2 right-2 bg-white/90 p-2 rounded shadow text-xs pointer-events-none border border-gray-300">
-                        <div class="flex items-center gap-2 mb-1"><div class="w-3 h-3 bg-blue-500 opacity-50"></div> Static Vehicle</div>
-                        <div class="flex items-center gap-2 mb-1"><div class="w-3 h-3 bg-green-200 border border-red-500 border-dashed"></div> Throw Envelope</div>
-                        <div class="flex items-center gap-2 mb-1"><div class="w-3 h-3 text-green-600 font-bold text-center leading-3">+</div> End/Centre Point</div>
-                    </div>
-                </div>
-
-                <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div class="bg-gray-50 p-3 rounded border">
-                        <h3 class="font-bold text-gray-700 border-b pb-1 mb-2">Calculated Values</h3>
-                        
-                        <!-- Active Outline Section -->
-                        <div class="mb-3 border-b border-gray-200 pb-2">
-                            <div class="flex items-center justify-between mb-1">
-                                <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">Active Outline</span>
-                                <span class="text-[10px] text-gray-400">(Selected Radio)</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <p>End Throw (ET):</p>
-                                <span id="val_ET" class="font-mono font-bold text-gray-800">0.00</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <p>Centre Throw (CT):</p>
-                                <span id="val_CT" class="font-mono font-bold text-gray-800">0.00</span>
-                            </div>
-                        </div>
-
-                        <!-- Input Vehicle Section -->
-                        <div>
-                            <div class="flex items-center justify-between mb-1">
-                                <span class="text-xs font-bold text-blue-600 uppercase tracking-wide">Input Vehicle</span>
-                                <span class="text-[10px] text-gray-400">(L_veh, B_veh)</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <p>End Throw (ET):</p>
-                                <span id="val_veh_ET" class="font-mono font-bold text-blue-700">0.00</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <p>Centre Throw (CT):</p>
-                                <span id="val_veh_CT" class="font-mono font-bold text-blue-700">0.00</span>
-                            </div>
-                        </div>
-
-                    </div>
-                    <div class="bg-gray-50 p-3 rounded border">
-                         <h3 class="font-bold text-gray-700 border-b pb-1 mb-2">Clearance Info</h3>
-                         <div id="clearance-details" class="space-y-1">
-                             Running...
-                         </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -414,35 +364,6 @@
                 veh_CT = Math.pow(B_veh, 2) / (8 * R_mm);
             }
 
-            // Update UI - Outline
-            document.getElementById('val_ET').textContent = calc_ET.toFixed(2) + " mm";
-            document.getElementById('val_CT').textContent = calc_CT.toFixed(2) + " mm";
-
-            // Update UI - Vehicle with coloring logic
-            const vehEtEl = document.getElementById('val_veh_ET');
-            const vehCtEl = document.getElementById('val_veh_CT');
-            
-            vehEtEl.textContent = veh_ET.toFixed(2) + " mm";
-            vehCtEl.textContent = veh_CT.toFixed(2) + " mm";
-
-            // Color logic: Red if Vehicle Throw > Outline Throw (within small tolerance)
-            if (veh_ET > calc_ET + 0.01) {
-                vehEtEl.className = "font-mono font-bold text-red-600";
-            } else if (Math.abs(veh_ET - calc_ET) <= 0.01) {
-                vehEtEl.className = "font-mono font-bold text-blue-700"; // Match
-            } else {
-                vehEtEl.className = "font-mono font-bold text-green-600"; // Safe
-            }
-
-            if (veh_CT > calc_CT + 0.01) {
-                vehCtEl.className = "font-mono font-bold text-red-600";
-            } else if (Math.abs(veh_CT - calc_CT) <= 0.01) {
-                vehCtEl.className = "font-mono font-bold text-blue-700"; // Match
-            } else {
-                vehCtEl.className = "font-mono font-bold text-green-600"; // Safe
-            }
-
-
             // 3. Prepare Outline Data
             const rawPoints = OUTLINE_DATA_SETS[currentOutlineId];
             if(!rawPoints) return;
@@ -516,9 +437,7 @@
                 const xMult = (side === 'right') ? 1 : -1;
                 const tilt = (side === 'right') ? -roll : roll;
                 
-                // --- FIX APPLIED HERE ---
                 // Which throw value to use for the POINT location?
-                // Previously used calc_ET (Outline), now uses veh_ET (Vehicle)
                 const pointThrowVal = (studyType === 1) ? veh_ET : veh_CT;
                 
                 // Calculate raw position before rotation
@@ -554,20 +473,22 @@
             });
 
             // 6. Draw
-            draw(polyCoords, studyPoints, results);
+            draw(polyCoords, studyPoints, results, {roll, lat, bounce, studyType});
         }
 
         // =================================================================
         // 4. DRAWING
         // =================================================================
 
-        function draw(polyCoords, studyPoints, results) {
+        function draw(polyCoords, studyPoints, results, params) {
             const canvas = document.getElementById('plotCanvas');
             const ctx = canvas.getContext('2d');
             
-            // Responsive sizing
-            canvas.width = canvas.parentElement.clientWidth;
-            canvas.height = canvas.parentElement.clientHeight;
+            // Responsive sizing - check parent
+            const parent = canvas.parentElement;
+            canvas.width = parent.clientWidth;
+            canvas.height = parent.clientHeight;
+            
             const width = canvas.width;
             const height = canvas.height;
 
@@ -594,20 +515,28 @@
             const minY = Math.min(...allY);
             const maxY = Math.max(...allY);
 
-            // Add margin
-            const margin = 400; // mm units approx
-            const dataW = (maxX - minX) + margin * 2;
-            const dataH = (maxY - minY) + margin * 2;
+            // Add margin (Technical chart needs more margin for axes)
+            const marginX = 800; 
+            const marginY = 800;
+            const dataW = (maxX - minX) + marginX * 2;
+            const dataH = (maxY - minY) + marginY * 2;
             
             // Scale
-            const scaleX = width / dataW;
-            const scaleY = height / dataH;
-            const scale = Math.min(scaleX, scaleY) * 0.95; // 95% fill
+            // Adjust scale to leave room for Title (top) and Axis (left/bottom)
+            const plotXStart = 60; // Left padding for Y axis labels
+            const plotYStart = 60; // Top padding for Title
+            const plotW = width - plotXStart - 20; // Right padding
+            const plotH = height - plotYStart - 40; // Bottom padding for X axis labels
 
-            const cx = width / 2;
-            const cy = height / 2;
+            const scaleX = plotW / dataW;
+            const scaleY = plotH / dataH;
+            const scale = Math.min(scaleX, scaleY);
+
             const dataCx = (minX + maxX) / 2;
             const dataCy = (minY + maxY) / 2;
+
+            const cx = plotXStart + plotW / 2;
+            const cy = plotYStart + plotH / 2;
 
             function toScreen(x, y) {
                 // Flip Y for canvas
@@ -617,67 +546,69 @@
                 };
             }
 
-            // --- Draw Grid & Axes ---
-            ctx.save();
-            ctx.strokeStyle = '#e5e7eb';
-            ctx.lineWidth = 1;
-            
-            // Draw Grid Lines (Approx every 500mm or 1000mm depending on scale)
-            // Just basic grid for now
-            const gridSize = 1000; // 1m
-            const startGridX = Math.floor(minX/gridSize)*gridSize;
-            const startGridY = Math.floor(minY/gridSize)*gridSize;
+            // --- Background & Grid ---
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0,0,width,height);
 
-            ctx.font = '10px sans-serif';
-            ctx.fillStyle = '#9ca3af';
+            // Grid Lines
+            ctx.save();
+            ctx.strokeStyle = '#d1d5db'; // Light gray
+            ctx.lineWidth = 0.8;
+            ctx.setLineDash([4, 4]); // Dashed grid
+            
+            const gridSize = 500; // 500mm grid
+            const startGridX = Math.floor((minX - marginX)/gridSize)*gridSize;
+            const endGridX = Math.ceil((maxX + marginX)/gridSize)*gridSize;
+            const startGridY = Math.floor((minY - marginY)/gridSize)*gridSize;
+            const endGridY = Math.ceil((maxY + marginY)/gridSize)*gridSize;
+
+            ctx.font = '10px Arial';
+            ctx.fillStyle = '#6b7280';
             ctx.textAlign = 'center';
 
-            for(let gx = startGridX; gx <= maxX + margin; gx += gridSize) {
+            // Vertical Grid & X Labels
+            for(let gx = startGridX; gx <= endGridX; gx += gridSize) {
                 const p = toScreen(gx, 0);
-                if(p.x >= 0 && p.x <= width) {
+                if(p.x >= plotXStart && p.x <= width) {
                     ctx.beginPath();
-                    ctx.moveTo(p.x, 0); ctx.lineTo(p.x, height);
+                    ctx.moveTo(p.x, plotYStart); 
+                    ctx.lineTo(p.x, height - 20);
                     ctx.stroke();
-                    ctx.fillText(gx, p.x, height - 5);
+                    // Label
+                    if(gx % 1000 === 0) ctx.fillText(gx, p.x, height - 5);
                 }
             }
-            for(let gy = startGridY; gy <= maxY + margin; gy += gridSize) {
+            // Horizontal Grid & Y Labels
+            ctx.textAlign = 'right';
+            for(let gy = startGridY; gy <= endGridY; gy += gridSize) {
                 const p = toScreen(0, gy);
-                if(p.y >= 0 && p.y <= height) {
+                if(p.y >= plotYStart && p.y <= height - 20) {
                     ctx.beginPath();
-                    ctx.moveTo(0, p.y); ctx.lineTo(width, p.y);
+                    ctx.moveTo(plotXStart, p.y); 
+                    ctx.lineTo(width, p.y);
                     ctx.stroke();
-                    ctx.textAlign = 'left';
-                    ctx.fillText(gy, 5, p.y - 2);
+                    // Label
+                    if(gy % 1000 === 0) ctx.fillText(gy, plotXStart - 5, p.y + 3);
                 }
             }
+            ctx.restore();
 
-            // Axis Lines (X=0, Y=0 is usually below pivot)
-            const origin = toScreen(0, 0); // Y=0 line
-            const yAxis = toScreen(0, 0); // X=0 line
-
-            ctx.strokeStyle = '#6b7280';
-            ctx.lineWidth = 1.5;
-            // X=0
-            ctx.beginPath(); ctx.moveTo(yAxis.x, 0); ctx.lineTo(yAxis.x, height); ctx.stroke();
-            // Y=0 is theoretically far down, might not be visible
+            // Axis Titles
+            ctx.save();
+            ctx.fillStyle = '#374151';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText("x (mm)", plotXStart + plotW/2, height - 5);
             
+            ctx.translate(15, plotYStart + plotH/2);
+            ctx.rotate(-Math.PI/2);
+            ctx.fillText("y (mm)", 0, 0);
             ctx.restore();
 
 
-            // --- Draw Pivot ---
-            const piv = toScreen(PIVOT_POINT.x, PIVOT_POINT.y);
-            ctx.fillStyle = 'black';
-            ctx.beginPath();
-            ctx.arc(piv.x, piv.y, 4, 0, 2*Math.PI);
-            ctx.fill();
-            ctx.fillStyle = '#000';
-            ctx.font = 'bold 12px sans-serif';
-            ctx.fillText("Pivot", piv.x + 8, piv.y + 4);
-
             // --- Draw Static Vehicle (Blue) ---
-            ctx.strokeStyle = '#3b82f6'; // Blue-500
-            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#6495ED'; // Cornflower Blue
+            ctx.lineWidth = 1.5;
             ctx.beginPath();
             
             // Left static
@@ -703,38 +634,48 @@
             ctx.stroke();
 
             // --- Construct Dynamic Envelope Polygon ---
-            // Construct full polygon for fill and collision detection
             const fullPoly = [];
             // Left side normal order
             polyCoords.left.x.forEach((x, i) => fullPoly.push({x: x, y: polyCoords.left.y[i]}));
-            // Right side REVERSE order to close loop nicely at top/bottom
+            // Right side REVERSE order
             for(let i = polyCoords.right.x.length - 1; i >= 0; i--) {
                 fullPoly.push({x: polyCoords.right.x[i], y: polyCoords.right.y[i]});
             }
 
-            // --- Determine Global Pass/Fail for Fill Color ---
-            let isInsideStatus = true;
-            let isOnBoundary = false;
-            const TOLERANCE_MM = 0.0000000001; // Distance tolerance to be considered "On Line"
-
+            // Determine Pass/Fail/Boundary for Title & Fill
+            let globalStatus = 'PASS'; 
+            const TOLERANCE_MM = 1e-9; // 0.000000001
+            
             if (fullPoly.length > 0 && studyPoints.length > 0) {
-                studyPoints.forEach((sp, idx) => {
-                    // Check if strictly inside
-                    const isInside = pointInPolygon(sp, fullPoly);
-                    if (!isInside) isInsideStatus = false;
+                let hasFail = false;
+                let hasBoundary = false;
 
-                    // Check if on boundary line (using the Envelope X we calculated)
+                studyPoints.forEach((sp, idx) => {
+                    const isStrictlyInside = pointInPolygon(sp, fullPoly);
                     const res = results[idx];
+                    
+                    let isLocalBoundary = false;
+                    
+                    // Check distance to envelope line
                     if (res && res.envX !== null) {
-                        const distToEnvelope = Math.abs(sp.x - res.envX);
-                        if (distToEnvelope <= TOLERANCE_MM) {
-                            isOnBoundary = true;
-                        }
+                         const dist = Math.abs(sp.x - res.envX);
+                         if (dist <= TOLERANCE_MM) {
+                             hasBoundary = true;
+                             isLocalBoundary = true;
+                         }
+                    }
+                    
+                    // If not on boundary, check if strictly outside
+                    if (!isLocalBoundary && !isStrictlyInside) {
+                        hasFail = true;
                     }
                 });
+
+                if (hasFail) globalStatus = 'FAIL';
+                else if (hasBoundary) globalStatus = 'BOUNDARY';
             }
 
-            // --- Draw Dynamic Envelope (Filled based on status) ---
+            // --- Draw Dynamic Envelope ---
             ctx.beginPath();
             if(fullPoly.length) {
                 const s = toScreen(fullPoly[0].x, fullPoly[0].y);
@@ -746,52 +687,81 @@
                 ctx.closePath();
             }
 
-            // Fill based on Pass/Fail status
-            if (isOnBoundary) {
-                ctx.fillStyle = 'rgba(245, 158, 11, 0.4)'; // Tailwind Amber-500
-            } else if (isInsideStatus) {
-                ctx.fillStyle = 'rgba(34, 197, 94, 0.4)'; // Tailwind Green-500 equivalent with opacity
+            // Fill: Color based on Pass/Fail/Boundary status
+            if (globalStatus === 'FAIL') {
+                ctx.fillStyle = 'rgba(254, 202, 202, 0.6)'; // Light Red
+            } else if (globalStatus === 'BOUNDARY') {
+                ctx.fillStyle = 'rgba(251, 191, 36, 0.5)'; // Amber/Orange
             } else {
-                ctx.fillStyle = 'rgba(239, 68, 68, 0.4)'; // Tailwind Red-500 equivalent with opacity
+                ctx.fillStyle = 'rgba(230, 249, 230, 0.6)'; // Light Green
             }
             ctx.fill();
             
-            // Stroke
-            ctx.strokeStyle = '#ef4444'; // Red-500
+            // Stroke: Red Dashed
+            ctx.strokeStyle = '#FF6347'; // Tomato Red
             ctx.lineWidth = 1.5;
             ctx.setLineDash([5, 5]);
             ctx.stroke();
             ctx.setLineDash([]); // Reset
 
-            // --- Check Containment & Draw Study Points ---
-            // Re-eval for "All Inside" strictly for badge text (boundary counts as pass usually, but we want to warn)
-            let allInside = true;
-            const clearanceHtml = [];
+            // --- Draw Pivot ---
+            const piv = toScreen(PIVOT_POINT.x, PIVOT_POINT.y);
+            ctx.fillStyle = 'black';
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 2;
+            
+            // Draw Plus Sign
+            const plusSize = 6;
+            ctx.beginPath();
+            ctx.moveTo(piv.x - plusSize, piv.y); ctx.lineTo(piv.x + plusSize, piv.y);
+            ctx.moveTo(piv.x, piv.y - plusSize); ctx.lineTo(piv.x, piv.y + plusSize);
+            ctx.stroke();
 
+            // --- Draw Study Points & Annotations ---
             studyPoints.forEach((sp, idx) => {
                 const scr = toScreen(sp.x, sp.y);
                 
-                // Check Polygon Containment
-                const isInside = pointInPolygon(sp, fullPoly);
-                if(!isInside) allInside = false;
-
-                // Draw Marker
-                ctx.strokeStyle = sp.color;
-                ctx.lineWidth = 3;
+                // Draw Plus Marker (Green for Throw)
+                ctx.strokeStyle = '#008000'; // Green
+                ctx.lineWidth = 2;
                 ctx.beginPath();
-                ctx.moveTo(scr.x - 8, scr.y); ctx.lineTo(scr.x + 8, scr.y);
-                ctx.moveTo(scr.x, scr.y - 8); ctx.lineTo(scr.x, scr.y + 8);
+                ctx.moveTo(scr.x - 4, scr.y); ctx.lineTo(scr.x + 4, scr.y);
+                ctx.moveTo(scr.x, scr.y - 4); ctx.lineTo(scr.x, scr.y + 4);
                 ctx.stroke();
 
-                // Draw Coordinates Text
-                ctx.fillStyle = '#111827';
-                ctx.font = 'bold 11px sans-serif';
-                ctx.textAlign = sp.side === 'right' ? 'left' : 'right';
-                // Adjust label position slightly to avoid overlap
-                const xOff = sp.side === 'right' ? 12 : -12;
-                ctx.fillText(`(${sp.x.toFixed(0)}, ${sp.y.toFixed(0)})`, scr.x + xOff, scr.y - 10);
+                // Only draw text annotations for the RIGHT side
+                if (sp.side === 'right') {
+                    // Draw Coordinate Annotations
+                    ctx.font = '11px Arial';
+                    ctx.fillStyle = '#008000';
+                    
+                    // y: label near center
+                    const yLabelPos = toScreen(0, sp.y);
+                    ctx.textAlign = 'right';
+                    ctx.fillText(`y:${sp.y.toFixed(0)}`, yLabelPos.x - 10, yLabelPos.y + 4);
 
-                // --- Draw Delta Lines ---
+                    // x: label on axis (Drop line approach)
+                    const axisY = height - 20; 
+
+                    // Draw dashed drop line
+                    ctx.save();
+                    ctx.setLineDash([2, 2]);
+                    ctx.strokeStyle = '#008000'; 
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(scr.x, scr.y);
+                    ctx.lineTo(scr.x, axisY);
+                    ctx.stroke();
+                    ctx.restore();
+
+                    // Draw Text at Axis
+                    ctx.textAlign = 'center';
+                    // ctx.fillText(`x:${sp.x.toFixed(0)}`, scr.x, height - 5);
+                    ctx.fillText(`${sp.x.toFixed(0)}`, scr.x, height - 5);
+                }
+
+
+                // --- Draw Delta Lines & Text ---
                 const res = results[idx];
                 
                 // 1. Static Delta Line (Red Dotted)
@@ -805,19 +775,25 @@
                     ctx.lineTo(scr.x, scr.y);
                     ctx.stroke();
                     
-                    // Small dot at intersection
-                    ctx.fillStyle = 'red';
-                    ctx.beginPath(); ctx.arc(statScr.x, statScr.y, 3, 0, 2*Math.PI); ctx.fill();
+                    // Small dot at static intersection
+                    ctx.fillStyle = 'black'; 
+                    ctx.beginPath(); ctx.arc(statScr.x, statScr.y, 2, 0, 2*Math.PI); ctx.fill();
 
-                    const dist = Math.abs(sp.x - res.staticX);
-                    clearanceHtml.push(`<div class="text-xs flex justify-between"><span>${sp.side.toUpperCase()} Static Δ:</span> <span class="font-mono text-red-600 font-bold">${dist.toFixed(1)}mm</span></div>`);
+                    // Text only on Right side
+                    if (sp.side === 'right') {
+                        const dist = Math.abs(sp.x - res.staticX);
+                        ctx.font = 'bold 11px Arial';
+                        ctx.fillStyle = 'red';
+                        ctx.textAlign = 'left';
+                        ctx.fillText(`Δ Static: ${dist.toFixed(1)}mm`, scr.x + 10, scr.y - 15);
+                    }
                 }
 
                 // 2. Env Delta Line (Purple Dashed)
                 if(res.envX !== null) {
                     const envScr = toScreen(res.envX, sp.y);
                     ctx.beginPath();
-                    ctx.strokeStyle = 'purple';
+                    ctx.strokeStyle = '#800080'; // Purple
                     ctx.lineWidth = 1.5;
                     ctx.setLineDash([4, 4]);
                     ctx.moveTo(envScr.x, envScr.y);
@@ -825,39 +801,105 @@
                     ctx.stroke();
                     ctx.setLineDash([]);
                     
-                    // Small X at intersection
-                    ctx.beginPath(); 
-                    ctx.moveTo(envScr.x-3, envScr.y-3); ctx.lineTo(envScr.x+3, envScr.y+3);
-                    ctx.moveTo(envScr.x+3, envScr.y-3); ctx.lineTo(envScr.x-3, envScr.y+3);
-                    ctx.stroke();
-
-                    const dist = Math.abs(sp.x - res.envX);
-                    // Check local boundary condition for text styling
-                    const isLocalBoundary = dist <= TOLERANCE_MM;
-                    const textClass = isLocalBoundary ? "text-amber-600 font-extrabold bg-amber-100 px-1 rounded" : "text-purple-600 font-bold";
-                    
-                    clearanceHtml.push(`<div class="text-xs flex justify-between"><span>${sp.side.toUpperCase()} Env Δ:</span> <span class="font-mono ${textClass}">${dist.toFixed(1)}mm</span></div>`);
+                    // Text only on Right side
+                    if (sp.side === 'right') {
+                        const dist = Math.abs(sp.x - res.envX);
+                        ctx.font = 'bold 11px Arial';
+                        ctx.fillStyle = '#4B0082'; // Indigo/Purple
+                        ctx.textAlign = 'left';
+                        ctx.fillText(`Δ Env: ${dist.toFixed(1)}mm`, scr.x + 10, scr.y - 2);
+                    }
                 }
             });
 
-            // Update DOM Status
-            const badge = document.getElementById('status-badge');
-            if (studyPoints.length === 0) {
-                badge.textContent = "No Points";
-                badge.className = "px-3 py-1 rounded font-bold text-sm bg-gray-200 text-gray-600";
-            } else if (isOnBoundary) {
-                // MODIFICATION: New Badge state for Boundary
-                badge.textContent = "BOUNDARY (On Line)";
-                badge.className = "px-3 py-1 rounded font-bold text-sm bg-yellow-200 text-yellow-800 border border-yellow-400";
-            } else if (allInside) {
-                badge.textContent = "PASS (Inside)";
-                badge.className = "px-3 py-1 rounded font-bold text-sm bg-green-200 text-green-800 border border-green-400";
-            } else {
-                badge.textContent = "FAIL (Outside)";
-                badge.className = "px-3 py-1 rounded font-bold text-sm bg-red-200 text-red-800 border border-red-400";
-            }
+            // --- TITLE BLOCK ---
+            ctx.save();
+            ctx.textAlign = 'center';
+            ctx.fillStyle = 'black';
+            
+            // Main Title
+            ctx.font = '16px Arial';
+            const typeText = params.studyType === 1 ? "End Throw" : "Centre Throw";
+            ctx.fillText(`Vehicle Outline with ${typeText}`, cx, 20);
+            
+            // Subtitle / Status
+            ctx.font = '14px Arial';
+            
+            let statusText = "PASS (Inside)";
+            if (globalStatus === 'FAIL') statusText = "FAIL (Outside)";
+            else if (globalStatus === 'BOUNDARY') statusText = "BOUNDARY (On Line)";
+            
+            ctx.fillText(`Status: ${statusText} | Roll: ${params.roll.toFixed(1)}° | Lat: ${params.lat.toFixed(1)}mm | Bounce: ${params.bounce.toFixed(1)}mm`, cx, 40);
+            ctx.restore();
 
-            document.getElementById('clearance-details').innerHTML = clearanceHtml.join('');
+            // --- LEGEND ---
+            drawLegend(ctx, width - 110, 10);
+        }
+
+        function drawLegend(ctx, x, y) {
+            const w = 100;
+            const h = 100; // approx
+            
+            // Box
+            ctx.save();
+            ctx.fillStyle = 'white';
+            ctx.strokeStyle = '#999';
+            ctx.lineWidth = 1;
+            ctx.fillRect(x, y, w, h);
+            ctx.strokeRect(x, y, w, h);
+
+            // Items
+            const items = [
+                { color: 'black', text: 'Pivot (0, 1100)', type: 'symbol', symbol: '+' },
+                { color: 'rgba(230, 249, 230, 1)', text: 'Throw Loop', type: 'rect' },
+                { color: '#6495ED', text: 'Static Vehicle', type: 'line' },
+                { color: '#008000', text: 'End Throw (ET)', type: 'symbol', symbol: '+' },
+                { color: 'red', text: 'Static Distance', type: 'dashed' },
+                { color: '#800080', text: 'Env. Distance', type: 'dashed' },
+            ];
+
+            ctx.font = '9px Arial';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            
+            let cy = y + 10;
+            const lx = x + 10;
+            const tx = x + 25;
+
+            items.forEach(item => {
+                ctx.fillStyle = 'black';
+                ctx.fillText(item.text, tx, cy);
+
+                if(item.type === 'line') {
+                    ctx.strokeStyle = item.color;
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([]);
+                    ctx.beginPath(); ctx.moveTo(lx-5, cy); ctx.lineTo(lx+5, cy); ctx.stroke();
+                } else if(item.type === 'dashed') {
+                    ctx.strokeStyle = item.color;
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([3, 2]);
+                    ctx.beginPath(); ctx.moveTo(lx-5, cy); ctx.lineTo(lx+5, cy); ctx.stroke();
+                } else if(item.type === 'rect') {
+                    ctx.fillStyle = item.color;
+                    ctx.strokeStyle = '#FF6347'; // Border for throw loop
+                    ctx.setLineDash([2,1]);
+                    ctx.lineWidth = 1;
+                    ctx.fillRect(lx-5, cy-3, 12, 6);
+                    ctx.strokeRect(lx-5, cy-3, 12, 6);
+                } else if(item.type === 'symbol') {
+                    ctx.strokeStyle = item.color;
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([]);
+                    ctx.beginPath();
+                    ctx.moveTo(lx-3, cy); ctx.lineTo(lx+3, cy);
+                    ctx.moveTo(lx, cy-3); ctx.lineTo(lx, cy+3);
+                    ctx.stroke();
+                }
+
+                cy += 15;
+            });
+            ctx.restore();
         }
 
         // --- Init ---
