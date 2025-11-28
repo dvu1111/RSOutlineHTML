@@ -55,28 +55,25 @@
 
             <!-- 2. Vehicle Dimensions -->
             <div class="input-group">
-                <div class="flex justify-between mb-2 px-8 text-xs font-bold text-gray-500">
-                    <span class="w-20 text-center">L_veh</span>
-                    <span class="w-20 text-center">B_veh</span>
-                    <span class="w-16 text-center">h</span>
-                    <span class="w-16 text-center">w</span>
+                <div class="flex items-center gap-2 mb-1">
+                    <div class="flex-1 flex items-center gap-1">
+                        <label for="input_L_veh" class="text-xs font-bold text-gray-500 w-12 text-right">L_veh</label>
+                        <input type="number" id="input_L_veh" class="input-field w-full" value="21000">
+                    </div>
+                    <div class="flex-1 flex items-center gap-1">
+                        <label for="input_B_veh" class="text-xs font-bold text-gray-500 w-12 text-right">B_veh</label>
+                        <input type="number" id="input_B_veh" class="input-field w-full" value="15850">
+                    </div>
                 </div>
-                
-                <div class="input-row hover:bg-gray-50 p-1 rounded">
-                    <input type="radio" name="veh_preset" id="veh1" class="mr-2" onchange="setVehicle(16200, 11000, 400, 2540)">
-                    <label for="veh1" class="flex-1 cursor-pointer">Study vehicle #1</label>
-                </div>
-                
-                <div class="input-row hover:bg-gray-50 p-1 rounded">
-                    <input type="radio" name="veh_preset" id="veh2" class="mr-2" checked onchange="setVehicle(21000, 15850, 400, 2540)">
-                    <label for="veh2" class="flex-1 cursor-pointer">Study vehicle #2</label>
-                </div>
-
-                <div class="border-t border-gray-200 mt-2 pt-2 grid grid-cols-4 gap-2">
-                    <input type="number" id="input_L_veh" class="input-field w-full" value="21000">
-                    <input type="number" id="input_B_veh" class="input-field w-full" value="15850">
-                    <input type="number" id="input_h" class="input-field w-full" value="400">
-                    <input type="number" id="input_w" class="input-field w-full" value="2540">
+                <div class="flex items-center gap-2">
+                    <div class="flex-1 flex items-center gap-1">
+                        <label for="input_h" class="text-xs font-bold text-gray-500 w-12 text-right">h</label>
+                        <input type="number" id="input_h" class="input-field w-full" value="400">
+                    </div>
+                    <div class="flex-1 flex items-center gap-1">
+                        <label for="input_w" class="text-xs font-bold text-gray-500 w-12 text-right">w</label>
+                        <input type="number" id="input_w" class="input-field w-full" value="2540">
+                    </div>
                 </div>
             </div>
 
