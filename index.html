@@ -193,8 +193,39 @@
                 <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div class="bg-gray-50 p-3 rounded border">
                         <h3 class="font-bold text-gray-700 border-b pb-1 mb-2">Calculated Values</h3>
-                        <p>End Throw (ET): <span id="val_ET" class="font-mono">0.00</span> mm</p>
-                        <p>Centre Throw (CT): <span id="val_CT" class="font-mono">0.00</span> mm</p>
+                        
+                        <!-- Active Outline Section -->
+                        <div class="mb-3 border-b border-gray-200 pb-2">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs font-bold text-gray-500 uppercase tracking-wide">Active Outline</span>
+                                <span class="text-[10px] text-gray-400">(Selected Radio)</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <p>End Throw (ET):</p>
+                                <span id="val_ET" class="font-mono font-bold text-gray-800">0.00</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <p>Centre Throw (CT):</p>
+                                <span id="val_CT" class="font-mono font-bold text-gray-800">0.00</span>
+                            </div>
+                        </div>
+
+                        <!-- Input Vehicle Section -->
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs font-bold text-blue-600 uppercase tracking-wide">Input Vehicle</span>
+                                <span class="text-[10px] text-gray-400">(L_veh, B_veh)</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <p>End Throw (ET):</p>
+                                <span id="val_veh_ET" class="font-mono font-bold text-blue-700">0.00</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <p>Centre Throw (CT):</p>
+                                <span id="val_veh_CT" class="font-mono font-bold text-blue-700">0.00</span>
+                            </div>
+                        </div>
+
                     </div>
                     <div class="bg-gray-50 p-3 rounded border">
                          <h3 class="font-bold text-gray-700 border-b pb-1 mb-2">Clearance Info</h3>
@@ -369,14 +400,48 @@
 
             // 2. Calculate Throws
             let calc_ET = 0, calc_CT = 0;
+            let veh_ET = 0, veh_CT = 0;
+
             if (R_mm !== 0) {
                 // Formula: (L^2 - B^2) / 8R  (All units must be same, usually mm)
+                
+                // Active Outline
                 calc_ET = (Math.pow(L_outline, 2) - Math.pow(B_outline, 2)) / (8 * R_mm);
                 calc_CT = Math.pow(B_outline, 2) / (8 * R_mm);
+
+                // Input Vehicle
+                veh_ET = (Math.pow(L_veh, 2) - Math.pow(B_veh, 2)) / (8 * R_mm);
+                veh_CT = Math.pow(B_veh, 2) / (8 * R_mm);
             }
 
-            document.getElementById('val_ET').textContent = calc_ET.toFixed(2);
-            document.getElementById('val_CT').textContent = calc_CT.toFixed(2);
+            // Update UI - Outline
+            document.getElementById('val_ET').textContent = calc_ET.toFixed(2) + " mm";
+            document.getElementById('val_CT').textContent = calc_CT.toFixed(2) + " mm";
+
+            // Update UI - Vehicle with coloring logic
+            const vehEtEl = document.getElementById('val_veh_ET');
+            const vehCtEl = document.getElementById('val_veh_CT');
+            
+            vehEtEl.textContent = veh_ET.toFixed(2) + " mm";
+            vehCtEl.textContent = veh_CT.toFixed(2) + " mm";
+
+            // Color logic: Red if Vehicle Throw > Outline Throw (within small tolerance)
+            if (veh_ET > calc_ET + 0.01) {
+                vehEtEl.className = "font-mono font-bold text-red-600";
+            } else if (Math.abs(veh_ET - calc_ET) <= 0.01) {
+                vehEtEl.className = "font-mono font-bold text-blue-700"; // Match
+            } else {
+                vehEtEl.className = "font-mono font-bold text-green-600"; // Safe
+            }
+
+            if (veh_CT > calc_CT + 0.01) {
+                vehCtEl.className = "font-mono font-bold text-red-600";
+            } else if (Math.abs(veh_CT - calc_CT) <= 0.01) {
+                vehCtEl.className = "font-mono font-bold text-blue-700"; // Match
+            } else {
+                vehCtEl.className = "font-mono font-bold text-green-600"; // Safe
+            }
+
 
             // 3. Prepare Outline Data
             const rawPoints = OUTLINE_DATA_SETS[currentOutlineId];
@@ -451,8 +516,10 @@
                 const xMult = (side === 'right') ? 1 : -1;
                 const tilt = (side === 'right') ? -roll : roll;
                 
+                // --- FIX APPLIED HERE ---
                 // Which throw value to use for the POINT location?
-                const pointThrowVal = (studyType === 1) ? calc_ET : calc_CT;
+                // Previously used calc_ET (Outline), now uses veh_ET (Vehicle)
+                const pointThrowVal = (studyType === 1) ? veh_ET : veh_CT;
                 
                 // Calculate raw position before rotation
                 // x = (lat + w/2 + offset) * side
@@ -646,7 +713,6 @@
             }
 
             // --- Determine Global Pass/Fail for Fill Color ---
-            // --- MODIFICATION: Added Boundary / On Line check logic ---
             let isInsideStatus = true;
             let isOnBoundary = false;
             const TOLERANCE_MM = 0.0000000001; // Distance tolerance to be considered "On Line"
@@ -682,13 +748,10 @@
 
             // Fill based on Pass/Fail status
             if (isOnBoundary) {
-                // MODIFICATION: Amber fill for "On Line"
                 ctx.fillStyle = 'rgba(245, 158, 11, 0.4)'; // Tailwind Amber-500
             } else if (isInsideStatus) {
-                // Pass = Green
                 ctx.fillStyle = 'rgba(34, 197, 94, 0.4)'; // Tailwind Green-500 equivalent with opacity
             } else {
-                // Fail = Red
                 ctx.fillStyle = 'rgba(239, 68, 68, 0.4)'; // Tailwind Red-500 equivalent with opacity
             }
             ctx.fill();
