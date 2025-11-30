@@ -161,7 +161,7 @@
                     <label class="flex-1 text-sm">Parameters</label>
                 </div>
                 <div class="grid grid-cols-3 gap-2 pt-1">
-                    <input type="number" id="input_roll" class="input-field w-full" value="0" step="0.1">
+                    <input type="number" id="input_roll" class="input-field w-full" value="5" step="0.1">
                     <input type="number" id="input_lat" class="input-field w-full" value="0">
                     <input type="number" id="input_bounce" class="input-field w-full" value="0">
                 </div>
@@ -376,7 +376,11 @@
             const vHeight = (maxY - minY) || 1;
             
             // 4. Generate Polygons
-            const polyCoords = { left: {x:[], y:[], static_x:[], static_y:[]}, right: {x:[], y:[], static_x:[], static_y:[]} };
+            // Added rot_static_x/y for the rotated static outline
+            const polyCoords = { 
+                left: {x:[], y:[], static_x:[], static_y:[], rot_static_x:[], rot_static_y:[]}, 
+                right: {x:[], y:[], static_x:[], static_y:[], rot_static_x:[], rot_static_y:[]} 
+            };
 
             ['right', 'left'].forEach(side => {
                 const xMult = (side === 'right') ? 1 : -1;
@@ -404,8 +408,16 @@
                     
                     // Store Static (Flattened)
                     segPoints.forEach(p => {
+                        // 1. Original Static (Upright)
                         polyCoords[side].static_x.push(p.x);
                         polyCoords[side].static_y.push(p.y);
+
+                        // 2. Rotated Static (Tilted but on floor Y=65)
+                        // Rotate p.x, p.y around Pivot
+                        const rotS = getRotatedCoords(p.x, p.y, tiltAngle, PIVOT_POINT.x, PIVOT_POINT.y);
+                        // Use Rotated X, but Original Y
+                        polyCoords[side].rot_static_x.push(rotS.x);
+                        polyCoords[side].rot_static_y.push(p.y);
                     });
 
                     // Transform for Dynamic (Throw Loop)
@@ -461,15 +473,26 @@
                 const y_check = y_pos; 
 
                 // --- Calculate Deltas ---
-                // 1. Static Delta
-                const staticPts = polyCoords[side].static_x.map((x, i) => ({x: x, y: polyCoords[side].static_y[i]}));
-                const staticX = getXAtY(y_check, staticPts, side);
                 
-                // 2. Envelope Delta
+                // 1. Static Delta (Distance from Study Point to Rotated Static)
+                const rotStaticPts = polyCoords[side].rot_static_x.map((x, i) => ({x: x, y: polyCoords[side].rot_static_y[i]}));
+                const rotStaticX = getXAtY(y_check, rotStaticPts, side);
+                
+                // 2. Origin Delta (Distance from Rotated Static to Original Static)
+                const origStaticPts = polyCoords[side].static_x.map((x, i) => ({x: x, y: polyCoords[side].static_y[i]}));
+                const origStaticX = getXAtY(y_check, origStaticPts, side);
+
+                // 3. Envelope Delta
                 const envPts = polyCoords[side].x.map((x, i) => ({x: x, y: polyCoords[side].y[i]}));
                 const envX = getXAtY(y_check, envPts, side);
 
-                let res = { side: side, p: {x: p_rot.x, y: y_pos}, staticX: staticX, envX: envX };
+                let res = { 
+                    side: side, 
+                    p: {x: p_rot.x, y: y_pos}, 
+                    rotStaticX: rotStaticX, // X on rotated static line
+                    origStaticX: origStaticX, // X on upright static line
+                    envX: envX 
+                };
                 results.push(res);
             });
 
@@ -513,7 +536,7 @@
             allX.push(PIVOT_POINT.x); allY.push(PIVOT_POINT.y);
 
             ['right', 'left'].forEach(s => {
-                allX.push(...polyCoords[s].x, ...polyCoords[s].static_x);
+                allX.push(...polyCoords[s].x, ...polyCoords[s].static_x, ...polyCoords[s].rot_static_x);
                 allY.push(...polyCoords[s].y, ...polyCoords[s].static_y);
             });
             
@@ -616,9 +639,10 @@
             ctx.restore();
 
 
-            // --- Draw Static Vehicle (Blue) ---
-            ctx.strokeStyle = '#6495ED'; // Cornflower Blue
-            ctx.lineWidth = 1.5;
+            // --- 1. Draw Original Static Vehicle (Upright - Solid Blue - Thinner) ---
+            ctx.strokeStyle = '#2563eb'; // Standard Blue
+            ctx.lineWidth = 1.0; 
+            ctx.setLineDash([]);
             ctx.beginPath();
             
             // Left static
@@ -643,7 +667,39 @@
             }
             ctx.stroke();
 
-            // --- Construct Dynamic Envelope Polygon ---
+            // --- 2. Draw Rotated Static Vehicle (Dotted Blue + Shaded) ---
+            
+            // Build Polygon for Rotated Static
+            const rotPoly = [];
+            polyCoords.left.rot_static_x.forEach((x, i) => rotPoly.push({x: x, y: polyCoords.left.rot_static_y[i]}));
+            // Reverse Right side
+            for(let i = polyCoords.right.rot_static_x.length - 1; i >= 0; i--) {
+                rotPoly.push({x: polyCoords.right.rot_static_x[i], y: polyCoords.right.rot_static_y[i]});
+            }
+
+            ctx.save();
+            ctx.beginPath();
+            if(rotPoly.length) {
+                const s = toScreen(rotPoly[0].x, rotPoly[0].y);
+                ctx.moveTo(s.x, s.y);
+                for(let i=1; i<rotPoly.length; i++) {
+                    const p = toScreen(rotPoly[i].x, rotPoly[i].y);
+                    ctx.lineTo(p.x, p.y);
+                }
+                ctx.closePath();
+            }
+            // Fill
+            ctx.fillStyle = 'rgba(59, 130, 246, 0.15)'; // Very light blue
+            ctx.fill();
+            // Stroke
+            ctx.strokeStyle = '#2563eb'; // Blue
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([2, 3]); // Dotted
+            ctx.stroke();
+            ctx.restore();
+
+
+            // --- 3. Construct Dynamic Envelope Polygon ---
             const fullPoly = [];
             // Left side normal order
             polyCoords.left.x.forEach((x, i) => fullPoly.push({x: x, y: polyCoords.left.y[i]}));
@@ -685,7 +741,7 @@
                 else if (hasBoundary) globalStatus = 'BOUNDARY';
             }
 
-            // --- Draw Dynamic Envelope ---
+            // --- 4. Draw Dynamic Envelope ---
             ctx.beginPath();
             if(fullPoly.length) {
                 const s = toScreen(fullPoly[0].x, fullPoly[0].y);
@@ -699,11 +755,11 @@
 
             // Fill: Color based on Pass/Fail/Boundary status
             if (globalStatus === 'FAIL') {
-                ctx.fillStyle = 'rgba(254, 202, 202, 0.6)'; // Light Red
+                ctx.fillStyle = 'rgba(254, 202, 202, 0.4)'; // Light Red
             } else if (globalStatus === 'BOUNDARY') {
-                ctx.fillStyle = 'rgba(251, 191, 36, 0.5)'; // Amber/Orange
+                ctx.fillStyle = 'rgba(251, 191, 36, 0.4)'; // Amber/Orange
             } else {
-                ctx.fillStyle = 'rgba(230, 249, 230, 0.6)'; // Light Green
+                ctx.fillStyle = 'rgba(230, 249, 230, 0.4)'; // Light Green
             }
             ctx.fill();
             
@@ -774,9 +830,9 @@
                 // --- Draw Delta Lines & Text ---
                 const res = results[idx];
                 
-                // 1. Static Delta Line (Red Dotted)
-                if(res.staticX !== null) {
-                    const statScr = toScreen(res.staticX, sp.y);
+                // 1. Static Delta Line (Red Dotted) - NOW TO ROTATED STATIC
+                if(res.rotStaticX !== null) {
+                    const statScr = toScreen(res.rotStaticX, sp.y);
                     ctx.beginPath();
                     ctx.strokeStyle = 'red';
                     ctx.lineWidth = 1.5;
@@ -785,17 +841,17 @@
                     ctx.lineTo(scr.x, scr.y);
                     ctx.stroke();
                     
-                    // Small dot at static intersection
+                    // Small dot at intersection
                     ctx.fillStyle = 'black'; 
                     ctx.beginPath(); ctx.arc(statScr.x, statScr.y, 2, 0, 2*Math.PI); ctx.fill();
 
                     // Text only on Right side
                     if (sp.side === 'right') {
-                        const dist = Math.abs(sp.x - res.staticX);
+                        const dist = Math.abs(sp.x - res.rotStaticX);
                         ctx.font = 'bold 11px Arial';
                         ctx.fillStyle = 'red';
                         ctx.textAlign = 'left';
-                        ctx.fillText(`Δ Static: ${dist.toFixed(1)}mm`, scr.x + 10, scr.y - 15);
+                        ctx.fillText(`Δ Static: ${dist.toFixed(1)}mm`, scr.x + 10, scr.y - 18);
                     }
                 }
 
@@ -817,8 +873,38 @@
                         ctx.font = 'bold 11px Arial';
                         ctx.fillStyle = '#4B0082'; // Indigo/Purple
                         ctx.textAlign = 'left';
-                        ctx.fillText(`Δ Env: ${dist.toFixed(1)}mm`, scr.x + 10, scr.y - 2);
+                        ctx.fillText(`Δ Env: ${dist.toFixed(1)}mm`, scr.x + 10, scr.y - 4);
                     }
+                }
+
+                // 3. NEW: Delta from Rotated Static to Original Static
+                if(res.rotStaticX !== null && res.origStaticX !== null && sp.side === 'right') {
+                    const rotScr = toScreen(res.rotStaticX, sp.y);
+                    const origScr = toScreen(res.origStaticX, sp.y);
+
+                    // Draw a small arrow or line connecting them
+                    ctx.beginPath();
+                    ctx.strokeStyle = '#2563eb'; // Blue
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([]);
+                    // Draw slightly below the main point to avoid clutter
+                    const yOffset = 15; 
+                    const yDraw = rotScr.y + yOffset;
+                    
+                    ctx.moveTo(rotScr.x, yDraw);
+                    ctx.lineTo(origScr.x, yDraw);
+                    // Tick marks
+                    ctx.moveTo(rotScr.x, yDraw - 3); ctx.lineTo(rotScr.x, yDraw + 3);
+                    ctx.moveTo(origScr.x, yDraw - 3); ctx.lineTo(origScr.x, yDraw + 3);
+                    ctx.stroke();
+
+                    // Text
+                    const dist = Math.abs(res.rotStaticX - res.origStaticX);
+                    ctx.fillStyle = '#2563eb';
+                    ctx.font = '10px Arial';
+                    ctx.textAlign = 'center';
+                    const midX = (rotScr.x + origScr.x) / 2;
+                    ctx.fillText(`Δ Rot: ${dist.toFixed(1)}`, midX, yDraw + 12);
                 }
             });
 
@@ -843,12 +929,12 @@
             ctx.restore();
 
             // --- LEGEND ---
-            drawLegend(ctx, width - 110, 10);
+            drawLegend(ctx, width - 130, 10);
         }
 
         function drawLegend(ctx, x, y) {
-            const w = 100;
-            const h = 100; // approx
+            const w = 120;
+            const h = 135; // increased height
             
             // Box
             ctx.save();
@@ -862,10 +948,12 @@
             const items = [
                 { color: 'black', text: 'Pivot (0, 1100)', type: 'symbol', symbol: '+' },
                 { color: 'rgba(230, 249, 230, 1)', text: 'Throw Loop', type: 'rect' },
-                { color: '#6495ED', text: 'Static Vehicle', type: 'line' },
+                { color: 'rgba(59, 130, 246, 0.4)', text: 'Rotated Static', type: 'dottedRect' }, // New
+                { color: '#2563eb', text: 'Original Static', type: 'line' },
                 { color: '#008000', text: 'End Throw (ET)', type: 'symbol', symbol: '+' },
-                { color: 'red', text: 'Static Distance', type: 'dashed' },
-                { color: '#800080', text: 'Env. Distance', type: 'dashed' },
+                { color: 'red', text: 'Δ Static (to Rot)', type: 'dashed' },
+                { color: '#2563eb', text: 'Δ Rotation', type: 'line' }, // New
+                { color: '#800080', text: 'Δ Env', type: 'dashed' },
             ];
 
             ctx.font = '9px Arial';
@@ -882,21 +970,28 @@
 
                 if(item.type === 'line') {
                     ctx.strokeStyle = item.color;
-                    ctx.lineWidth = 2;
+                    ctx.lineWidth = 1.5;
                     ctx.setLineDash([]);
-                    ctx.beginPath(); ctx.moveTo(lx-5, cy); ctx.lineTo(lx+5, cy); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(lx-6, cy); ctx.lineTo(lx+6, cy); ctx.stroke();
                 } else if(item.type === 'dashed') {
                     ctx.strokeStyle = item.color;
-                    ctx.lineWidth = 2;
+                    ctx.lineWidth = 1.5;
                     ctx.setLineDash([3, 2]);
-                    ctx.beginPath(); ctx.moveTo(lx-5, cy); ctx.lineTo(lx+5, cy); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(lx-6, cy); ctx.lineTo(lx+6, cy); ctx.stroke();
                 } else if(item.type === 'rect') {
                     ctx.fillStyle = item.color;
                     ctx.strokeStyle = '#FF6347'; // Border for throw loop
                     ctx.setLineDash([2,1]);
                     ctx.lineWidth = 1;
-                    ctx.fillRect(lx-5, cy-3, 12, 6);
-                    ctx.strokeRect(lx-5, cy-3, 12, 6);
+                    ctx.fillRect(lx-6, cy-3, 12, 6);
+                    ctx.strokeRect(lx-6, cy-3, 12, 6);
+                } else if(item.type === 'dottedRect') {
+                    ctx.fillStyle = item.color;
+                    ctx.strokeStyle = '#2563eb';
+                    ctx.setLineDash([1,2]);
+                    ctx.lineWidth = 1;
+                    ctx.fillRect(lx-6, cy-3, 12, 6);
+                    ctx.strokeRect(lx-6, cy-3, 12, 6);
                 } else if(item.type === 'symbol') {
                     ctx.strokeStyle = item.color;
                     ctx.lineWidth = 2;
