@@ -45,11 +45,16 @@
             <h1 class="text-xl font-bold mb-4 text-gray-900">Input Parameters</h1>
 
             <div class="input-group">
-                <div class="input-row">
-                    <input type="radio" name="rad_sel" checked class="mr-2">
-                    <span class="font-bold mr-auto">Radius (R) [m]</span>
+                <div class="input-row justify-between">
+                    <label for="input_R" class="font-bold mr-auto">Radius (R) [m]</label>
                     <input type="number" id="input_R" value="100" class="input-field w-32">
                 </div>
+            </div>
+
+            <div class="my-4 border-t border-gray-200"></div>
+
+            <div class="input-group">
+                 <div class="section-header">Study vehicle:</div>
             </div>
 
             <div class="input-group">
@@ -73,7 +78,25 @@
                         <input type="number" id="input_w" class="input-field w-full" value="2540">
                     </div>
                 </div>
+
+                <!-- Active inputs with Labels explicitly beside them -->
+                <div class="border-t border-gray-200 mt-2 pt-2 flex items-center gap-2">
+                    <div class="text-xs font-bold text-gray-500 w-12">Active:</div>
+                    
+                    <div class="flex-1 flex items-center gap-1">
+                         <span class="text-xs font-bold text-gray-400">L</span>
+                         <input type="number" id="input_L_outline" class="input-field w-full" value="21000">
+                    </div>
+                    
+                    <div class="flex-1 flex items-center gap-1">
+                         <span class="text-xs font-bold text-gray-400">B</span>
+                         <input type="number" id="input_B_outline" class="input-field w-full" value="15850">
+                    </div>
+                </div>
             </div>
+
+
+            <div class="my-4 border-t border-gray-200"></div>
 
             <div class="input-group">
                 <!-- Header with explicit column widths to match rows -->
@@ -119,22 +142,9 @@
                         <span class="w-16"></span>
                     </div>
                 </div>
-
-                <!-- Active inputs with Labels explicitly beside them -->
-                <div class="border-t border-gray-200 mt-2 pt-2 flex items-center gap-2">
-                    <div class="text-xs font-bold text-gray-500 w-12">Active:</div>
-                    
-                    <div class="flex-1 flex items-center gap-1">
-                         <span class="text-xs font-bold text-gray-400">L</span>
-                         <input type="number" id="input_L_outline" class="input-field w-full" value="21000">
-                    </div>
-                    
-                    <div class="flex-1 flex items-center gap-1">
-                         <span class="text-xs font-bold text-gray-400">B</span>
-                         <input type="number" id="input_B_outline" class="input-field w-full" value="15850">
-                    </div>
-                </div>
             </div>
+
+            <div class="my-4 border-t border-gray-200"></div>
 
             <!-- CURVE DIRECTION (New Control) -->
             <div class="input-group border-l-4 border-l-blue-500">
@@ -153,6 +163,8 @@
                     Controls Roll Direction &amp; Throw Assignment (ET/CT).
                 </div>
             </div>
+
+            <div class="my-4 border-t border-gray-200"></div>
 
             <div class="input-group">
                 <div class="flex justify-between mb-2 px-2 text-xs font-bold text-gray-500">
@@ -376,7 +388,7 @@
             // 2. Lateral Shift (Standard: Pos X = Right, Neg X = Left)
             // CW Curve -> Force Left -> Negative X
             // CCW Curve -> Force Right -> Positive X
-            const latGlobal = isCW ? -latMag : latMag;
+            const latGlobal = isCW ? latMag : -latMag;
 
 
             // 2. Calculate Throws
@@ -455,25 +467,21 @@
                         polyCoords[side].rot_static_x.push(rotS.x);
                         polyCoords[side].rot_static_y.push(p.y);
 
-                        // 3. Apply Body Deformations (Throw) & Suspension (Bounce)
-                        // This establishes the vehicle shape in its local frame.
-                        const x_local = p.x + (throwVal * xMult);
+                        // 3. Dynamic (Throw Loop)
+                        // Formula: x_final = x_orig + GlobalLat + (SideSpecificThrow * direction)
+                        // Note: throwVal is always positive magnitude. xMult handles direction relative to center.
                         
-                        // FIX: Uniform bounce (rigid body) instead of scaling from const ty = p.y + (p.y - minY) / vHeight * bounce; 
-                        const y_local = p.y + bounce; 
-
-                        // B. Rotate (Roll)
-                        // Rotate the expanded body around the Pivot Point (Roll Center)
-                        const rot = getRotatedCoords(x_local, y_local, rollAngle, PIVOT_POINT.x, PIVOT_POINT.y);
-
-                        // C. Translate (Lateral Shift)
-                        // Shift the now-rotated body laterally. 
-                        // Note: latGlobal is added AFTER rotation.
-                        const final_x = rot.x + latGlobal;
-                        const final_y = y_local; // IMPORTANT: rot.y is not used because we don't want to capture roll. We want to assess the same y point on the vehicle.
+                        const tx = p.x + latGlobal + (throwVal * xMult);
                         
-                        polyCoords[side].x.push(final_x);
-                        polyCoords[side].y.push(final_y); 
+                        // Bounce (Vertical expansion)
+                        const normH = (p.y - minY) / vHeight;
+                        const ty = p.y + normH * bounce;
+
+                        // Rotate Final Point
+                        const rot = getRotatedCoords(tx, ty, rollAngle, PIVOT_POINT.x, PIVOT_POINT.y);
+                        
+                        polyCoords[side].x.push(rot.x);
+                        polyCoords[side].y.push(ty); 
                     });
                 }
             });
