@@ -376,7 +376,7 @@
             // 2. Lateral Shift (Standard: Pos X = Right, Neg X = Left)
             // CW Curve -> Force Left -> Negative X
             // CCW Curve -> Force Right -> Positive X
-            const latGlobal = isCW ? -Math.abs(latMag) : Math.abs(latMag);
+            const latGlobal = isCW ? -latMag : latMag;
 
 
             // 2. Calculate Throws
