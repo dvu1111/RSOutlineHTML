@@ -455,19 +455,22 @@
                         polyCoords[side].rot_static_x.push(rotS.x);
                         polyCoords[side].rot_static_y.push(p.y);
 
-                        // 3. Dynamic (Throw Loop)
-                        // Formula: x_final = x_orig + GlobalLat + (SideSpecificThrow * direction)
-                        // Note: throwVal is always positive magnitude. xMult handles direction relative to center.
+                        // 3. Apply Body Deformations (Throw) & Suspension (Bounce)
+                        // This establishes the vehicle shape in its local frame.
+                        const x_local = p.x + (throwVal * xMult);
+                        
+                        // FIX: Uniform bounce (rigid body) instead of scaling from const ty = p.y + (p.y - minY) / vHeight * bounce; 
+                        const y_local = p.y + bounce; 
 
-                        // Bounce (Vertical expansion)
-                        // const normH = (p.y - minY) / vHeight; 
-                        const ty = p.y + bounce; // changed from const ty = p.y + normH * bounce;
+                        // B. Rotate (Roll)
+                        // Rotate the expanded body around the Pivot Point (Roll Center)
+                        const rot = getRotatedCoords(x_local, y_local, rollAngle, PIVOT_POINT.x, PIVOT_POINT.y);
 
-                        // Rotate Point
-                        const rot = getRotatedCoords(tx, ty, rollAngle, PIVOT_POINT.x, PIVOT_POINT.y);
-
-                        // Lateral motion
-                        const tx = p.x + latGlobal + (throwVal * xMult);
+                        // C. Translate (Lateral Shift)
+                        // Shift the now-rotated body laterally. 
+                        // Note: latGlobal is added AFTER rotation.
+                        const final_x = rot.x + latGlobal;
+                        const final_y = rot.y; // IMPORTANT: Use rot.y to capture the tilt!
                         
                         polyCoords[side].x.push(rot.x);
                         polyCoords[side].y.push(ty); 
