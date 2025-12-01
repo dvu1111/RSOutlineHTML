@@ -470,10 +470,10 @@
                         // Shift the now-rotated body laterally. 
                         // Note: latGlobal is added AFTER rotation.
                         const final_x = rot.x + latGlobal;
-                        const final_y = rot.y; // IMPORTANT: Use rot.y to capture the tilt!
+                        const final_y = y_local; // IMPORTANT: rot.y is not used because we don't want to capture roll. We want to assess the same y point on the vehicle.
                         
                         polyCoords[side].x.push(final_x);
-                        polyCoords[side].y.push(p.y); 
+                        polyCoords[side].y.push(final_y); 
                     });
                 }
             });
