@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vehicle Throw & Clearance Calculator</title>
+    <title>Vehicle Curve Simulator & Throw Calculator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Custom styles for the canvas and inputs */
@@ -136,17 +136,21 @@
                 </div>
             </div>
 
-            <div class="input-group">
-                <div class="section-header">Study Type</div>
+            <!-- CURVE DIRECTION (New Control) -->
+            <div class="input-group border-l-4 border-l-blue-500">
+                <div class="section-header text-blue-800">Curve Direction</div>
                 <div class="input-row">
-                    <input type="radio" name="study_type" id="study1" value="1" checked class="mr-2" onchange="runCalculation()">
-                    <label for="study1" class="flex-1 cursor-pointer">End Throw</label>
-                    <span class="bg-gray-100 text-gray-600 px-2 rounded text-xs">ID: 1</span>
+                    <input type="radio" name="curve_dir" id="curve_cw" value="cw" checked class="mr-2" onchange="runCalculation()">
+                    <label for="curve_cw" class="flex-1 cursor-pointer font-bold">Clockwise</label>
+                    <span class="bg-blue-100 text-blue-800 px-2 rounded text-xs">Right Turn</span>
                 </div>
                 <div class="input-row">
-                    <input type="radio" name="study_type" id="study2" value="2" class="mr-2" onchange="runCalculation()">
-                    <label for="study2" class="flex-1 cursor-pointer">Centre Throw</label>
-                    <span class="bg-gray-100 text-gray-600 px-2 rounded text-xs">ID: 2</span>
+                    <input type="radio" name="curve_dir" id="curve_ccw" value="ccw" class="mr-2" onchange="runCalculation()">
+                    <label for="curve_ccw" class="flex-1 cursor-pointer font-bold">Counter-Clockwise</label>
+                    <span class="bg-blue-100 text-blue-800 px-2 rounded text-xs">Left Turn</span>
+                </div>
+                <div class="mt-2 text-xs text-gray-500">
+                    Controls Roll Direction &amp; Throw Assignment (ET/CT).
                 </div>
             </div>
 
@@ -344,23 +348,46 @@
             const L_outline = parseFloat(document.getElementById('input_L_outline').value);
             const B_outline = parseFloat(document.getElementById('input_B_outline').value);
             
-            const studyType = parseInt(document.querySelector('input[name="study_type"]:checked').value);
-            const roll = parseFloat(document.getElementById('input_roll').value);
-            const lat = parseFloat(document.getElementById('input_lat').value);
+            const isCW = document.getElementById('curve_cw').checked;
+            const rollMag = parseFloat(document.getElementById('input_roll').value);
+            const latMag = parseFloat(document.getElementById('input_lat').value);
             const bounce = parseFloat(document.getElementById('input_bounce').value);
 
+            // --- CURVE DYNAMICS LOGIC ---
+            // CW (Clockwise/Right Turn):
+            //   - Outside Rail is Left.
+            //   - Vehicle Rolls to Outside (Left).
+            //   - Lateral Force to Outside (Left).
+            //   - Left Side = End Throw (Headswing).
+            //   - Right Side = Center Throw (Centerswing).
+            
+            // CCW (Counter-Clockwise/Left Turn):
+            //   - Outside Rail is Right.
+            //   - Vehicle Rolls to Outside (Right).
+            //   - Lateral Force to Outside (Right).
+            //   - Right Side = End Throw.
+            //   - Left Side = Center Throw.
+
+            // 1. Roll Angle (Standard Math: Pos = CCW)
+            // CW Curve -> Roll Left (CCW) -> Positive Angle
+            // CCW Curve -> Roll Right (CW) -> Negative Angle
+            const rollAngle = isCW ? Math.abs(rollMag) : -Math.abs(rollMag);
+
+            // 2. Lateral Shift (Standard: Pos X = Right, Neg X = Left)
+            // CW Curve -> Force Left -> Negative X
+            // CCW Curve -> Force Right -> Positive X
+            const latGlobal = isCW ? -Math.abs(latMag) : Math.abs(latMag);
+
+
             // 2. Calculate Throws
-            let calc_ET = 0, calc_CT = 0;
-            let veh_ET = 0, veh_CT = 0;
+            let calc_ET = 0, calc_CT = 0; // For Outline
+            let veh_ET = 0, veh_CT = 0;   // For Points
 
             if (R_mm !== 0) {
-                // Formula: (L^2 - B^2) / 8R  (All units must be same, usually mm)
-                
-                // Active Outline
+                // Formula: (L^2 - B^2) / 8R
                 calc_ET = (Math.pow(L_outline, 2) - Math.pow(B_outline, 2)) / (8 * R_mm);
                 calc_CT = Math.pow(B_outline, 2) / (8 * R_mm);
 
-                // Input Vehicle
                 veh_ET = (Math.pow(L_veh, 2) - Math.pow(B_veh, 2)) / (8 * R_mm);
                 veh_CT = Math.pow(B_veh, 2) / (8 * R_mm);
             }
@@ -369,25 +396,38 @@
             const rawPoints = OUTLINE_DATA_SETS[currentOutlineId];
             if(!rawPoints) return;
 
-            // Find min/max y for normalization
             const ys = rawPoints.map(p => p.y);
             const minY = Math.min(...ys);
             const maxY = Math.max(...ys);
             const vHeight = (maxY - minY) || 1;
             
             // 4. Generate Polygons
-            // Added rot_static_x/y for the rotated static outline
+            // Added throw_type to track what was applied for labeling
             const polyCoords = { 
-                left: {x:[], y:[], static_x:[], static_y:[], rot_static_x:[], rot_static_y:[]}, 
-                right: {x:[], y:[], static_x:[], static_y:[], rot_static_x:[], rot_static_y:[]} 
+                left: {x:[], y:[], static_x:[], static_y:[], rot_static_x:[], rot_static_y:[], throw_type: ''}, 
+                right: {x:[], y:[], static_x:[], static_y:[], rot_static_x:[], rot_static_y:[], throw_type: ''} 
             };
 
             ['right', 'left'].forEach(side => {
                 const xMult = (side === 'right') ? 1 : -1;
-                const tiltAngle = (side === 'right') ? -roll : roll;
-                const throwVal = (studyType === 1) ? calc_ET : ((studyType === 2) ? calc_CT : 0);
 
-                // We need to iterate segments
+                // Determine Throw based on Curve Direction & Side
+                let throwVal = 0;
+                let throwTypeLabel = '';
+
+                if (isCW) {
+                    // Clockwise: Left=ET, Right=CT
+                    if (side === 'left') { throwVal = calc_ET; throwTypeLabel = 'ET'; }
+                    else { throwVal = calc_CT; throwTypeLabel = 'CT'; }
+                } else {
+                    // Counter-Clockwise: Left=CT, Right=ET
+                    if (side === 'left') { throwVal = calc_CT; throwTypeLabel = 'CT'; }
+                    else { throwVal = calc_ET; throwTypeLabel = 'ET'; }
+                }
+                
+                polyCoords[side].throw_type = throwTypeLabel;
+
+                // Iterate segments
                 for(let i=0; i<rawPoints.length-1; i++) {
                     const curr = rawPoints[i];
                     const next = rawPoints[i+1];
@@ -396,7 +436,6 @@
                     const sx2 = next.x * xMult, sy2 = next.y;
                     
                     let segPoints = [];
-                    // Generate points for this segment (Static)
                     if(curr.type === 1) {
                         segPoints.push({x: sx1, y: sy1});
                         segPoints.push({x: sx2, y: sy2});
@@ -406,79 +445,80 @@
                         segPoints = arcPts;
                     }
                     
-                    // Store Static (Flattened)
                     segPoints.forEach(p => {
                         // 1. Original Static (Upright)
                         polyCoords[side].static_x.push(p.x);
                         polyCoords[side].static_y.push(p.y);
 
-                        // 2. Rotated Static (Tilted but on floor Y=65)
-                        // Rotate p.x, p.y around Pivot
-                        const rotS = getRotatedCoords(p.x, p.y, tiltAngle, PIVOT_POINT.x, PIVOT_POINT.y);
-                        // Use Rotated X, but Original Y
+                        // 2. Rotated Static (Just the body rotated, no throw/lat)
+                        const rotS = getRotatedCoords(p.x, p.y, rollAngle, PIVOT_POINT.x, PIVOT_POINT.y);
                         polyCoords[side].rot_static_x.push(rotS.x);
                         polyCoords[side].rot_static_y.push(p.y);
-                    });
 
-                    // Transform for Dynamic (Throw Loop)
-                    segPoints.forEach(p => {
-                        // Apply Throw + Lat + Bounce
-                        // tx = x + (lat + throw) * direction
+                        // 3. Dynamic (Throw Loop)
+                        // Formula: x_final = x_orig + GlobalLat + (SideSpecificThrow * direction)
+                        // Note: throwVal is always positive magnitude. xMult handles direction relative to center.
                         
-                        const tx = p.x + (lat + throwVal) * xMult;
+                        const tx = p.x + latGlobal + (throwVal * xMult);
                         
-                        // ty = y + normalized_height * bounce
+                        // Bounce (Vertical expansion)
                         const normH = (p.y - minY) / vHeight;
                         const ty = p.y + normH * bounce;
 
-                        // Rotate
-                        const rot = getRotatedCoords(tx, ty, tiltAngle, PIVOT_POINT.x, PIVOT_POINT.y);
+                        // Rotate Final Point
+                        const rot = getRotatedCoords(tx, ty, rollAngle, PIVOT_POINT.x, PIVOT_POINT.y);
                         
-                        // FIX: Use rotated X, but un-rotated Y (ty)
                         polyCoords[side].x.push(rot.x);
                         polyCoords[side].y.push(ty); 
                     });
                 }
             });
 
-            // 5. Calculate Study Points (The points we check for clearance)
+            // 5. Calculate Study Points
             const h_bounced = h + ((h - minY) / vHeight) * bounce;
             const studyPoints = [];
             const results = [];
 
             ['right', 'left'].forEach(side => {
                 const xMult = (side === 'right') ? 1 : -1;
-                const tilt = (side === 'right') ? -roll : roll;
                 
-                // Which throw value to use for the POINT location?
-                const pointThrowVal = (studyType === 1) ? veh_ET : veh_CT;
-                
-                // Calculate raw position before rotation
-                // x = (lat + w/2 + offset) * side
-                const x_raw = (lat + (w/2) + pointThrowVal) * xMult;
+                // Determine Throw for Study Points (using veh_ET/veh_CT)
+                let ptThrowVal = 0;
+                let ptThrowType = '';
+                if (isCW) {
+                    if (side === 'left') { ptThrowVal = veh_ET; ptThrowType = 'ET'; }
+                    else { ptThrowVal = veh_CT; ptThrowType = 'CT'; }
+                } else {
+                    if (side === 'left') { ptThrowVal = veh_CT; ptThrowType = 'CT'; }
+                    else { ptThrowVal = veh_ET; ptThrowType = 'ET'; }
+                }
+
+                // Calc position
+                // Start at w/2 on the correct side
+                // Add Global Lat shift
+                // Add Throw Expansion (Throw is expansion, so moves further out)
+                const x_raw = (w/2 * xMult) + latGlobal + (ptThrowVal * xMult);
                 const y_pos = h_bounced;
 
                 // Rotate
-                const p_rot = getRotatedCoords(x_raw, y_pos, tilt, PIVOT_POINT.x, PIVOT_POINT.y);
+                const p_rot = getRotatedCoords(x_raw, y_pos, rollAngle, PIVOT_POINT.x, PIVOT_POINT.y);
                 
-                // FIX: Use rotated X, but un-rotated Y (y_pos) for the study point
                 studyPoints.push({
                     x: p_rot.x, 
-                    y: y_pos, // Kept unrotated per user request
+                    y: y_pos, 
                     side: side,
-                    color: (studyType === 1 ? '#059669' : '#d946ef') // Green or Magenta
+                    type: ptThrowType, // Store type for label
+                    color: (ptThrowType === 'ET' ? '#059669' : '#d946ef') // Green(ET) or Magenta(CT)
                 });
 
-                // Note: p_rot.y in results calculation below should also use unrotated Y if we want consistency for "Clearance" check
                 const y_check = y_pos; 
 
                 // --- Calculate Deltas ---
-                
-                // 1. Static Delta (Distance from Study Point to Rotated Static)
+                // 1. Rotated Static Delta
                 const rotStaticPts = polyCoords[side].rot_static_x.map((x, i) => ({x: x, y: polyCoords[side].rot_static_y[i]}));
                 const rotStaticX = getXAtY(y_check, rotStaticPts, side);
                 
-                // 2. Origin Delta (Distance from Rotated Static to Original Static)
+                // 2. Original Static Delta
                 const origStaticPts = polyCoords[side].static_x.map((x, i) => ({x: x, y: polyCoords[side].static_y[i]}));
                 const origStaticX = getXAtY(y_check, origStaticPts, side);
 
@@ -486,18 +526,18 @@
                 const envPts = polyCoords[side].x.map((x, i) => ({x: x, y: polyCoords[side].y[i]}));
                 const envX = getXAtY(y_check, envPts, side);
 
-                let res = { 
+                results.push({ 
                     side: side, 
+                    throwType: ptThrowType,
                     p: {x: p_rot.x, y: y_pos}, 
-                    rotStaticX: rotStaticX, // X on rotated static line
-                    origStaticX: origStaticX, // X on upright static line
+                    rotStaticX: rotStaticX, 
+                    origStaticX: origStaticX, 
                     envX: envX 
-                };
-                results.push(res);
+                });
             });
 
             // 6. Draw
-            draw(polyCoords, studyPoints, results, {roll, lat, bounce, studyType});
+            draw(polyCoords, studyPoints, results, {roll: rollMag, lat: latMag, bounce, isCW});
         }
 
         // =================================================================
@@ -508,39 +548,23 @@
             const canvas = document.getElementById('plotCanvas');
             const ctx = canvas.getContext('2d');
             
-            // Responsive sizing - check parent
             const parent = canvas.parentElement;
-            
-            // High DPI (Retina) scaling logic
             const dpr = window.devicePixelRatio || 1;
-            
-            // Set the canvas internal resolution to match screen density
             canvas.width = parent.clientWidth * dpr;
             canvas.height = parent.clientHeight * dpr;
-            
-            // Scale all drawing operations by dpr
             ctx.scale(dpr, dpr);
 
-            // Use logical CSS pixels for width/height variables so the rest of the math works as expected
             const width = parent.clientWidth;
             const height = parent.clientHeight;
-
             ctx.clearRect(0, 0, width, height);
 
-            // --- Coordinate System Setup ---
-            // Auto-scale to fit
-            // Gather all points (static + dynamic) to find bounds
+            // --- Scaling ---
             let allX = [], allY = [];
-            
-            // Add pivot
             allX.push(PIVOT_POINT.x); allY.push(PIVOT_POINT.y);
-
             ['right', 'left'].forEach(s => {
                 allX.push(...polyCoords[s].x, ...polyCoords[s].static_x, ...polyCoords[s].rot_static_x);
                 allY.push(...polyCoords[s].y, ...polyCoords[s].static_y);
             });
-            
-            // Add study points
             studyPoints.forEach(sp => { allX.push(sp.x); allY.push(sp.y); });
 
             const minX = Math.min(...allX);
@@ -548,18 +572,15 @@
             const minY = Math.min(...allY);
             const maxY = Math.max(...allY);
 
-            // Add margin (Technical chart needs more margin for axes)
             const marginX = 800; 
             const marginY = 800;
             const dataW = (maxX - minX) + marginX * 2;
             const dataH = (maxY - minY) + marginY * 2;
             
-            // Scale
-            // Adjust scale to leave room for Title (top) and Axis (left/bottom)
-            const plotXStart = 60; // Left padding for Y axis labels
-            const plotYStart = 60; // Top padding for Title
-            const plotW = width - plotXStart - 20; // Right padding
-            const plotH = height - plotYStart - 40; // Bottom padding for X axis labels
+            const plotXStart = 60; 
+            const plotYStart = 60; 
+            const plotW = width - plotXStart - 20; 
+            const plotH = height - plotYStart - 40; 
 
             const scaleX = plotW / dataW;
             const scaleY = plotH / dataH;
@@ -572,55 +593,43 @@
             const cy = plotYStart + plotH / 2;
 
             function toScreen(x, y) {
-                // Flip Y for canvas
                 return {
                     x: cx + (x - dataCx) * scale,
                     y: cy - (y - dataCy) * scale 
                 };
             }
 
-            // --- Background & Grid ---
+            // --- Grid ---
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0,0,width,height);
 
-            // Grid Lines
             ctx.save();
-            ctx.strokeStyle = '#d1d5db'; // Light gray
+            ctx.strokeStyle = '#e5e7eb'; 
             ctx.lineWidth = 0.8;
-            ctx.setLineDash([4, 4]); // Dashed grid
+            ctx.setLineDash([4, 4]); 
             
-            const gridSize = 500; // 500mm grid
+            const gridSize = 500; 
             const startGridX = Math.floor((minX - marginX)/gridSize)*gridSize;
             const endGridX = Math.ceil((maxX + marginX)/gridSize)*gridSize;
             const startGridY = Math.floor((minY - marginY)/gridSize)*gridSize;
             const endGridY = Math.ceil((maxY + marginY)/gridSize)*gridSize;
 
             ctx.font = '10px Arial';
-            ctx.fillStyle = '#6b7280';
-            ctx.textAlign = 'center';
+            ctx.fillStyle = '#9ca3af';
 
-            // Vertical Grid & X Labels
+            ctx.textAlign = 'center';
             for(let gx = startGridX; gx <= endGridX; gx += gridSize) {
                 const p = toScreen(gx, 0);
                 if(p.x >= plotXStart && p.x <= width) {
-                    ctx.beginPath();
-                    ctx.moveTo(p.x, plotYStart); 
-                    ctx.lineTo(p.x, height - 20);
-                    ctx.stroke();
-                    // Label
+                    ctx.beginPath(); ctx.moveTo(p.x, plotYStart); ctx.lineTo(p.x, height - 20); ctx.stroke();
                     if(gx % 1000 === 0) ctx.fillText(gx, p.x, height - 5);
                 }
             }
-            // Horizontal Grid & Y Labels
             ctx.textAlign = 'right';
             for(let gy = startGridY; gy <= endGridY; gy += gridSize) {
                 const p = toScreen(0, gy);
                 if(p.y >= plotYStart && p.y <= height - 20) {
-                    ctx.beginPath();
-                    ctx.moveTo(plotXStart, p.y); 
-                    ctx.lineTo(width, p.y);
-                    ctx.stroke();
-                    // Label
+                    ctx.beginPath(); ctx.moveTo(plotXStart, p.y); ctx.lineTo(width, p.y); ctx.stroke();
                     if(gy % 1000 === 0) ctx.fillText(gy, plotXStart - 5, p.y + 3);
                 }
             }
@@ -632,47 +641,34 @@
             ctx.font = '12px Arial';
             ctx.textAlign = 'center';
             ctx.fillText("x (mm)", plotXStart + plotW/2, height - 5);
-            
             ctx.translate(15, plotYStart + plotH/2);
             ctx.rotate(-Math.PI/2);
             ctx.fillText("y (mm)", 0, 0);
             ctx.restore();
 
-
-            // --- 1. Draw Original Static Vehicle (Upright - Solid Blue - Thinner) ---
-            ctx.strokeStyle = '#2563eb'; // Standard Blue
+            // --- 1. Draw Original Static Vehicle (Solid Blue) ---
+            ctx.strokeStyle = '#2563eb';
             ctx.lineWidth = 1.0; 
             ctx.setLineDash([]);
             ctx.beginPath();
             
-            // Left static
-            const leftStatic = polyCoords.left.static_x.map((x, i) => ({x, y: polyCoords.left.static_y[i]}));
-            if(leftStatic.length) {
-                const start = toScreen(leftStatic[0].x, leftStatic[0].y);
-                ctx.moveTo(start.x, start.y);
-                for(let i=1; i<leftStatic.length; i++) {
-                    const p = toScreen(leftStatic[i].x, leftStatic[i].y);
-                    ctx.lineTo(p.x, p.y);
+            ['left', 'right'].forEach(s => {
+                const pts = polyCoords[s].static_x.map((x, i) => ({x, y: polyCoords[s].static_y[i]}));
+                if(pts.length) {
+                    const st = toScreen(pts[0].x, pts[0].y);
+                    ctx.moveTo(st.x, st.y);
+                    for(let i=1; i<pts.length; i++) {
+                        const p = toScreen(pts[i].x, pts[i].y);
+                        ctx.lineTo(p.x, p.y);
+                    }
                 }
-            }
-            // Right static
-            const rightStatic = polyCoords.right.static_x.map((x, i) => ({x, y: polyCoords.right.static_y[i]}));
-            if(rightStatic.length) {
-                 const start = toScreen(rightStatic[0].x, rightStatic[0].y);
-                 ctx.moveTo(start.x, start.y);
-                 for(let i=1; i<rightStatic.length; i++) {
-                     const p = toScreen(rightStatic[i].x, rightStatic[i].y);
-                     ctx.lineTo(p.x, p.y);
-                 }
-            }
+            });
             ctx.stroke();
 
             // --- 2. Draw Rotated Static Vehicle (Dotted Blue + Shaded) ---
-            
-            // Build Polygon for Rotated Static
+            // Construct polygon
             const rotPoly = [];
             polyCoords.left.rot_static_x.forEach((x, i) => rotPoly.push({x: x, y: polyCoords.left.rot_static_y[i]}));
-            // Reverse Right side
             for(let i = polyCoords.right.rot_static_x.length - 1; i >= 0; i--) {
                 rotPoly.push({x: polyCoords.right.rot_static_x[i], y: polyCoords.right.rot_static_y[i]});
             }
@@ -688,41 +684,31 @@
                 }
                 ctx.closePath();
             }
-            // Fill
-            ctx.fillStyle = 'rgba(59, 130, 246, 0.15)'; // Very light blue
+            ctx.fillStyle = 'rgba(59, 130, 246, 0.15)'; 
             ctx.fill();
-            // Stroke
-            ctx.strokeStyle = '#2563eb'; // Blue
+            ctx.strokeStyle = '#2563eb';
             ctx.lineWidth = 1.5;
-            ctx.setLineDash([2, 3]); // Dotted
+            ctx.setLineDash([2, 3]);
             ctx.stroke();
             ctx.restore();
 
-
             // --- 3. Construct Dynamic Envelope Polygon ---
             const fullPoly = [];
-            // Left side normal order
             polyCoords.left.x.forEach((x, i) => fullPoly.push({x: x, y: polyCoords.left.y[i]}));
-            // Right side REVERSE order
             for(let i = polyCoords.right.x.length - 1; i >= 0; i--) {
                 fullPoly.push({x: polyCoords.right.x[i], y: polyCoords.right.y[i]});
             }
 
-            // Determine Pass/Fail/Boundary for Title & Fill
             let globalStatus = 'PASS'; 
-            const TOLERANCE_MM = 1e-9; // 0.000000001
+            const TOLERANCE_MM = 1e-9;
             
             if (fullPoly.length > 0 && studyPoints.length > 0) {
                 let hasFail = false;
                 let hasBoundary = false;
-
                 studyPoints.forEach((sp, idx) => {
                     const isStrictlyInside = pointInPolygon(sp, fullPoly);
                     const res = results[idx];
-                    
                     let isLocalBoundary = false;
-                    
-                    // Check distance to envelope line
                     if (res && res.envX !== null) {
                          const dist = Math.abs(sp.x - res.envX);
                          if (dist <= TOLERANCE_MM) {
@@ -730,13 +716,8 @@
                              isLocalBoundary = true;
                          }
                     }
-                    
-                    // If not on boundary, check if strictly outside
-                    if (!isLocalBoundary && !isStrictlyInside) {
-                        hasFail = true;
-                    }
+                    if (!isLocalBoundary && !isStrictlyInside) hasFail = true;
                 });
-
                 if (hasFail) globalStatus = 'FAIL';
                 else if (hasBoundary) globalStatus = 'BOUNDARY';
             }
@@ -752,159 +733,87 @@
                 }
                 ctx.closePath();
             }
-
-            // Fill: Color based on Pass/Fail/Boundary status
-            if (globalStatus === 'FAIL') {
-                ctx.fillStyle = 'rgba(254, 202, 202, 0.4)'; // Light Red
-            } else if (globalStatus === 'BOUNDARY') {
-                ctx.fillStyle = 'rgba(251, 191, 36, 0.4)'; // Amber/Orange
-            } else {
-                ctx.fillStyle = 'rgba(230, 249, 230, 0.4)'; // Light Green
-            }
+            if (globalStatus === 'FAIL') ctx.fillStyle = 'rgba(254, 202, 202, 0.4)'; // Red
+            else if (globalStatus === 'BOUNDARY') ctx.fillStyle = 'rgba(251, 191, 36, 0.4)'; // Amber
+            else ctx.fillStyle = 'rgba(230, 249, 230, 0.4)'; // Green
             ctx.fill();
-            
-            // Stroke: Red Dashed
-            ctx.strokeStyle = '#FF6347'; // Tomato Red
+            ctx.strokeStyle = '#FF6347'; // Tomato
             ctx.lineWidth = 1.5;
             ctx.setLineDash([5, 5]);
             ctx.stroke();
-            ctx.setLineDash([]); // Reset
+            ctx.setLineDash([]);
 
-            // --- Draw Pivot ---
+            // Pivot
             const piv = toScreen(PIVOT_POINT.x, PIVOT_POINT.y);
-            ctx.fillStyle = 'black';
-            ctx.strokeStyle = 'black';
-            ctx.lineWidth = 2;
-            
-            // Draw Plus Sign
+            ctx.fillStyle = 'black'; ctx.strokeStyle = 'black'; ctx.lineWidth = 2;
             const plusSize = 6;
             ctx.beginPath();
             ctx.moveTo(piv.x - plusSize, piv.y); ctx.lineTo(piv.x + plusSize, piv.y);
             ctx.moveTo(piv.x, piv.y - plusSize); ctx.lineTo(piv.x, piv.y + plusSize);
             ctx.stroke();
 
-            // --- Draw Study Points & Annotations ---
+            // --- Draw Study Points & Annotations (BOTH SIDES) ---
             studyPoints.forEach((sp, idx) => {
                 const scr = toScreen(sp.x, sp.y);
                 
-                // Draw Plus Marker (Green for Throw)
-                ctx.strokeStyle = '#008000'; // Green
+                // Marker
+                ctx.strokeStyle = sp.color || '#000';
                 ctx.lineWidth = 2;
                 ctx.beginPath();
                 ctx.moveTo(scr.x - 4, scr.y); ctx.lineTo(scr.x + 4, scr.y);
                 ctx.moveTo(scr.x, scr.y - 4); ctx.lineTo(scr.x, scr.y + 4);
                 ctx.stroke();
 
-                // Only draw text annotations for the RIGHT side
-                if (sp.side === 'right') {
-                    // Draw Coordinate Annotations
-                    ctx.font = '11px Arial';
-                    ctx.fillStyle = '#008000';
-                    
-                    // y: label near center
-                    const yLabelPos = toScreen(0, sp.y);
-                    ctx.textAlign = 'right';
-                    ctx.fillText(`y:${sp.y.toFixed(0)}`, yLabelPos.x - 10, yLabelPos.y + 4);
-
-                    // x: label on axis (Drop line approach)
-                    const axisY = height - 20; 
-
-                    // Draw dashed drop line
-                    ctx.save();
-                    ctx.setLineDash([2, 2]);
-                    ctx.strokeStyle = '#008000'; 
-                    ctx.lineWidth = 1;
-                    ctx.beginPath();
-                    ctx.moveTo(scr.x, scr.y);
-                    ctx.lineTo(scr.x, axisY);
-                    ctx.stroke();
-                    ctx.restore();
-
-                    // Draw Text at Axis
-                    ctx.textAlign = 'center';
-                    // ctx.fillText(`x:${sp.x.toFixed(0)}`, scr.x, height - 5);
-                    ctx.fillText(`${sp.x.toFixed(0)}`, scr.x, height - 5);
-                }
-
-
-                // --- Draw Delta Lines & Text ---
+                // Annotations
                 const res = results[idx];
+                const isLeft = (sp.side === 'left');
+                const textAlign = isLeft ? 'right' : 'left';
+                const textXOffset = isLeft ? -10 : 10;
                 
-                // 1. Static Delta Line (Red Dotted) - NOW TO ROTATED STATIC
+                // Y label
+                ctx.font = '11px Arial';
+                ctx.fillStyle = '#008000';
+                ctx.textAlign = textAlign;
+                ctx.fillText(`y:${sp.y.toFixed(0)}`, scr.x + textXOffset, scr.y - 30);
+
+                // X drop line
+                const axisY = height - 20; 
+                ctx.save();
+                ctx.setLineDash([2, 2]);
+                ctx.strokeStyle = '#008000'; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(scr.x, scr.y); ctx.lineTo(scr.x, axisY); ctx.stroke();
+                ctx.restore();
+                ctx.textAlign = 'center';
+                ctx.fillText(`${sp.x.toFixed(0)}`, scr.x, height - 5);
+
+                // --- Delta Lines ---
+                
+                // 1. Static Delta (Red Dotted) - Distance to Rotated Static
                 if(res.rotStaticX !== null) {
                     const statScr = toScreen(res.rotStaticX, sp.y);
-                    ctx.beginPath();
-                    ctx.strokeStyle = 'red';
-                    ctx.lineWidth = 1.5;
-                    ctx.setLineDash([2, 2]);
-                    ctx.moveTo(statScr.x, statScr.y);
-                    ctx.lineTo(scr.x, scr.y);
-                    ctx.stroke();
-                    
-                    // Small dot at intersection
-                    ctx.fillStyle = 'black'; 
-                    ctx.beginPath(); ctx.arc(statScr.x, statScr.y, 2, 0, 2*Math.PI); ctx.fill();
+                    ctx.beginPath(); ctx.strokeStyle = 'red'; ctx.lineWidth = 1.5; ctx.setLineDash([2, 2]);
+                    ctx.moveTo(statScr.x, statScr.y); ctx.lineTo(scr.x, scr.y); ctx.stroke();
+                    ctx.fillStyle = 'black'; ctx.beginPath(); ctx.arc(statScr.x, statScr.y, 2, 0, 2*Math.PI); ctx.fill();
 
-                    // Text only on Right side
-                    if (sp.side === 'right') {
-                        const dist = Math.abs(sp.x - res.rotStaticX);
-                        ctx.font = 'bold 11px Arial';
-                        ctx.fillStyle = 'red';
-                        ctx.textAlign = 'left';
-                        ctx.fillText(`Δ Static: ${dist.toFixed(1)}mm`, scr.x + 10, scr.y - 18);
-                    }
+                    // Text: Dynamic Label (ET vs CT)
+                    const dist = Math.abs(sp.x - res.rotStaticX);
+                    ctx.font = 'bold 11px Arial';
+                    ctx.fillStyle = 'red';
+                    ctx.textAlign = textAlign;
+                    ctx.fillText(`Δ ${res.throwType} Static: ${dist.toFixed(1)}`, scr.x + textXOffset, scr.y - 18);
                 }
 
                 // 2. Env Delta Line (Purple Dashed)
                 if(res.envX !== null) {
                     const envScr = toScreen(res.envX, sp.y);
-                    ctx.beginPath();
-                    ctx.strokeStyle = '#800080'; // Purple
-                    ctx.lineWidth = 1.5;
-                    ctx.setLineDash([4, 4]);
-                    ctx.moveTo(envScr.x, envScr.y);
-                    ctx.lineTo(scr.x, scr.y);
-                    ctx.stroke();
-                    ctx.setLineDash([]);
+                    ctx.beginPath(); ctx.strokeStyle = '#800080'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]);
+                    ctx.moveTo(envScr.x, envScr.y); ctx.lineTo(scr.x, scr.y); ctx.stroke();
                     
-                    // Text only on Right side
-                    if (sp.side === 'right') {
-                        const dist = Math.abs(sp.x - res.envX);
-                        ctx.font = 'bold 11px Arial';
-                        ctx.fillStyle = '#4B0082'; // Indigo/Purple
-                        ctx.textAlign = 'left';
-                        ctx.fillText(`Δ Env: ${dist.toFixed(1)}mm`, scr.x + 10, scr.y - 4);
-                    }
-                }
-
-                // 3. NEW: Delta from Rotated Static to Original Static
-                if(res.rotStaticX !== null && res.origStaticX !== null && sp.side === 'right') {
-                    const rotScr = toScreen(res.rotStaticX, sp.y);
-                    const origScr = toScreen(res.origStaticX, sp.y);
-
-                    // Draw a small arrow or line connecting them
-                    ctx.beginPath();
-                    ctx.strokeStyle = '#2563eb'; // Blue
-                    ctx.lineWidth = 1;
-                    ctx.setLineDash([]);
-                    // Draw slightly below the main point to avoid clutter
-                    const yOffset = 15; 
-                    const yDraw = rotScr.y + yOffset;
-                    
-                    ctx.moveTo(rotScr.x, yDraw);
-                    ctx.lineTo(origScr.x, yDraw);
-                    // Tick marks
-                    ctx.moveTo(rotScr.x, yDraw - 3); ctx.lineTo(rotScr.x, yDraw + 3);
-                    ctx.moveTo(origScr.x, yDraw - 3); ctx.lineTo(origScr.x, yDraw + 3);
-                    ctx.stroke();
-
-                    // Text
-                    const dist = Math.abs(res.rotStaticX - res.origStaticX);
-                    ctx.fillStyle = '#2563eb';
-                    ctx.font = '10px Arial';
-                    ctx.textAlign = 'center';
-                    const midX = (rotScr.x + origScr.x) / 2;
-                    ctx.fillText(`Δ Rot: ${dist.toFixed(1)}`, midX, yDraw + 12);
+                    const dist = Math.abs(sp.x - res.envX);
+                    ctx.font = 'bold 11px Arial';
+                    ctx.fillStyle = '#4B0082';
+                    ctx.textAlign = textAlign;
+                    ctx.fillText(`Δ Env: ${dist.toFixed(1)}`, scr.x + textXOffset, scr.y - 6);
                 }
             });
 
@@ -912,15 +821,11 @@
             ctx.save();
             ctx.textAlign = 'center';
             ctx.fillStyle = 'black';
-            
-            // Main Title
             ctx.font = '16px Arial';
-            const typeText = params.studyType === 1 ? "End Throw" : "Centre Throw";
-            ctx.fillText(`Vehicle Outline with ${typeText}`, cx, 20);
+            const dirText = params.isCW ? "Clockwise (Right Turn)" : "Counter-Clockwise (Left Turn)";
+            ctx.fillText(`Vehicle Outline Simulation - ${dirText}`, cx, 20);
             
-            // Subtitle / Status
             ctx.font = '14px Arial';
-            
             let statusText = "PASS (Inside)";
             if (globalStatus === 'FAIL') statusText = "FAIL (Outside)";
             else if (globalStatus === 'BOUNDARY') statusText = "BOUNDARY (On Line)";
@@ -934,93 +839,60 @@
 
         function drawLegend(ctx, x, y) {
             const w = 120;
-            const h = 135; // increased height
-            
-            // Box
+            const h = 135;
             ctx.save();
-            ctx.fillStyle = 'white';
-            ctx.strokeStyle = '#999';
-            ctx.lineWidth = 1;
-            ctx.fillRect(x, y, w, h);
-            ctx.strokeRect(x, y, w, h);
+            ctx.fillStyle = 'white'; ctx.strokeStyle = '#999'; ctx.lineWidth = 1;
+            ctx.fillRect(x, y, w, h); ctx.strokeRect(x, y, w, h);
 
-            // Items
             const items = [
                 { color: 'black', text: 'Pivot (0, 1100)', type: 'symbol', symbol: '+' },
                 { color: 'rgba(230, 249, 230, 1)', text: 'Throw Loop', type: 'rect' },
-                { color: 'rgba(59, 130, 246, 0.4)', text: 'Rotated Static', type: 'dottedRect' }, // New
+                { color: 'rgba(59, 130, 246, 0.4)', text: 'Rotated Static', type: 'dottedRect' },
                 { color: '#2563eb', text: 'Original Static', type: 'line' },
-                { color: '#008000', text: 'End Throw (ET)', type: 'symbol', symbol: '+' },
-                { color: 'red', text: 'Δ Static (to Rot)', type: 'dashed' },
-                { color: '#2563eb', text: 'Δ Rotation', type: 'line' }, // New
-                { color: '#800080', text: 'Δ Env', type: 'dashed' },
+                { color: '#008000', text: 'Point (ET/CT)', type: 'symbol', symbol: '+' },
+                { color: 'red', text: 'Δ Static (Red)', type: 'dashed' },
+                { color: '#800080', text: 'Δ Env (Purple)', type: 'dashed' },
             ];
 
             ctx.font = '9px Arial';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
-            
             let cy = y + 10;
             const lx = x + 10;
             const tx = x + 25;
 
             items.forEach(item => {
-                ctx.fillStyle = 'black';
-                ctx.fillText(item.text, tx, cy);
-
+                ctx.fillStyle = 'black'; ctx.fillText(item.text, tx, cy);
                 if(item.type === 'line') {
-                    ctx.strokeStyle = item.color;
-                    ctx.lineWidth = 1.5;
-                    ctx.setLineDash([]);
+                    ctx.strokeStyle = item.color; ctx.lineWidth = 1.5; ctx.setLineDash([]);
                     ctx.beginPath(); ctx.moveTo(lx-6, cy); ctx.lineTo(lx+6, cy); ctx.stroke();
                 } else if(item.type === 'dashed') {
-                    ctx.strokeStyle = item.color;
-                    ctx.lineWidth = 1.5;
-                    ctx.setLineDash([3, 2]);
+                    ctx.strokeStyle = item.color; ctx.lineWidth = 1.5; ctx.setLineDash([3, 2]);
                     ctx.beginPath(); ctx.moveTo(lx-6, cy); ctx.lineTo(lx+6, cy); ctx.stroke();
                 } else if(item.type === 'rect') {
-                    ctx.fillStyle = item.color;
-                    ctx.strokeStyle = '#FF6347'; // Border for throw loop
-                    ctx.setLineDash([2,1]);
-                    ctx.lineWidth = 1;
-                    ctx.fillRect(lx-6, cy-3, 12, 6);
-                    ctx.strokeRect(lx-6, cy-3, 12, 6);
+                    ctx.fillStyle = item.color; ctx.strokeStyle = '#FF6347'; ctx.setLineDash([2,1]); ctx.lineWidth = 1;
+                    ctx.fillRect(lx-6, cy-3, 12, 6); ctx.strokeRect(lx-6, cy-3, 12, 6);
                 } else if(item.type === 'dottedRect') {
-                    ctx.fillStyle = item.color;
-                    ctx.strokeStyle = '#2563eb';
-                    ctx.setLineDash([1,2]);
-                    ctx.lineWidth = 1;
-                    ctx.fillRect(lx-6, cy-3, 12, 6);
-                    ctx.strokeRect(lx-6, cy-3, 12, 6);
+                    ctx.fillStyle = item.color; ctx.strokeStyle = '#2563eb'; ctx.setLineDash([1,2]); ctx.lineWidth = 1;
+                    ctx.fillRect(lx-6, cy-3, 12, 6); ctx.strokeRect(lx-6, cy-3, 12, 6);
                 } else if(item.type === 'symbol') {
-                    ctx.strokeStyle = item.color;
-                    ctx.lineWidth = 2;
-                    ctx.setLineDash([]);
+                    ctx.strokeStyle = item.color; ctx.lineWidth = 2; ctx.setLineDash([]);
                     ctx.beginPath();
                     ctx.moveTo(lx-3, cy); ctx.lineTo(lx+3, cy);
                     ctx.moveTo(lx, cy-3); ctx.lineTo(lx, cy+3);
                     ctx.stroke();
                 }
-
                 cy += 15;
             });
             ctx.restore();
         }
 
-        // --- Init ---
-        // Add event listeners to all inputs to trigger recalc
         document.querySelectorAll('input').forEach(inp => {
             if(inp.type === 'number') {
                 inp.addEventListener('input', runCalculation);
             }
         });
-        
-        // Handle window resize to redraw canvas
-        window.addEventListener('resize', () => {
-             runCalculation();
-        });
-        
-        // Initial Run
+        window.addEventListener('resize', runCalculation);
         window.onload = runCalculation;
 
     </script>
