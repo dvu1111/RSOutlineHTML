@@ -80,41 +80,38 @@
                 <div class="flex items-center gap-2 mb-2 px-1 text-xs font-bold text-gray-500">
                     <span class="w-6"></span> <!-- Space for Radio -->
                     <span class="flex-1">Outline</span>
-                    <span class="w-12 text-center">ID</span>
-                    <span class="w-16 text-center">L</span>
-                    <span class="w-16 text-center">B</span>
                 </div>
 
                 <div class="space-y-1">
                     <!-- Row 1 -->
                     <div class="flex items-center gap-2 hover:bg-gray-50 p-1 rounded">
-                        <input type="radio" name="outline_sel" id="rs1" class="w-4 h-4 cursor-pointer" onchange="setOutline(1, 16200, 11000)">
-                        <label for="rs1" class="flex-1 cursor-pointer font-medium text-sm">RS1</label>
-                        <span class="w-12 text-center text-xs text-gray-400">ID:1</span>
-                        <span class="w-16"></span> <!-- Empty L spacer -->
-                        <span class="w-16"></span> <!-- Empty B spacer -->
+                        <input type="radio" name="outline_sel" id="rs1" class="w-4 h-4 cursor-pointer" onchange="setOutline('RS1.1')">
+                        <label for="rs1" class="flex-1 cursor-pointer font-medium text-sm">RS1.1</label>
+                        <span class="w-12 text-center text-xs text-gray-400">1.1</span>
+                        <span class="w-16"></span>
+                        <span class="w-16"></span>
                     </div>
                     <!-- Row 2 -->
                     <div class="flex items-center gap-2 hover:bg-gray-50 p-1 rounded">
-                        <input type="radio" name="outline_sel" id="rs2" class="w-4 h-4 cursor-pointer" onchange="setOutline(2, 19150, 14000)">
-                        <label for="rs2" class="flex-1 cursor-pointer font-medium text-sm">RS2</label>
-                        <span class="w-12 text-center text-xs text-gray-400">ID:2</span>
+                        <input type="radio" name="outline_sel" id="rs2" class="w-4 h-4 cursor-pointer" onchange="setOutline('RS2.1')">
+                        <label for="rs2" class="flex-1 cursor-pointer font-medium text-sm">RS2.1</label>
+                        <span class="w-12 text-center text-xs text-gray-400">2.1</span>
                         <span class="w-16"></span>
                         <span class="w-16"></span>
                     </div>
                     <!-- Row 3 -->
                     <div class="flex items-center gap-2 hover:bg-gray-50 p-1 rounded">
-                        <input type="radio" name="outline_sel" id="rs3" class="w-4 h-4 cursor-pointer" onchange="setOutline(3, 19150, 14000)">
-                        <label for="rs3" class="flex-1 cursor-pointer font-medium text-sm">RS3</label>
-                        <span class="w-12 text-center text-xs text-gray-400">ID:3</span>
+                        <input type="radio" name="outline_sel" id="rs3" class="w-4 h-4 cursor-pointer" onchange="setOutline('RS3.1')">
+                        <label for="rs3" class="flex-1 cursor-pointer font-medium text-sm">RS3.1</label>
+                        <span class="w-12 text-center text-xs text-gray-400">3.1</span>
                         <span class="w-16"></span>
                         <span class="w-16"></span>
                     </div>
                     <!-- Row 4 -->
                     <div class="flex items-center gap-2 hover:bg-gray-50 p-1 rounded">
-                        <input type="radio" name="outline_sel" id="rs4" class="w-4 h-4 cursor-pointer" checked onchange="setOutline(4, 21000, 15850)">
-                        <label for="rs4" class="flex-1 cursor-pointer font-medium text-sm">RS4</label>
-                        <span class="w-12 text-center text-xs text-gray-400">ID:4</span>
+                        <input type="radio" name="outline_sel" id="rs4" class="w-4 h-4 cursor-pointer" checked onchange="setOutline('RS4.1')">
+                        <label for="rs4" class="flex-1 cursor-pointer font-medium text-sm">RS4.1</label>
+                        <span class="w-12 text-center text-xs text-gray-400">4.1</span>
                         <span class="w-16"></span>
                         <span class="w-16"></span>
                     </div>
@@ -122,7 +119,7 @@
 
                 <!-- Active inputs with Labels explicitly beside them -->
                 <div class="border-t border-gray-200 mt-2 pt-2 flex items-center gap-2">
-                    <div class="text-xs font-bold text-gray-500 w-12">Active:</div>
+                    <div class="text-xs font-bold text-gray-500 w-12">Reference Vehicle:</div>
                     
                     <div class="flex-1 flex items-center gap-1">
                          <span class="text-xs font-bold text-gray-400">L</span>
@@ -161,9 +158,12 @@
                     <span class="w-20 text-center">Lat (mm)</span>
                     <span class="w-20 text-center">Bounce (mm)</span>
                 </div>
-                <div class="input-row">
-                    <input type="radio" checked disabled class="mr-2 opacity-50">
-                    <label class="flex-1 text-sm">Parameters</label>
+
+                <div class="flex items-center gap-2 mb-2 px-1 text-xs font-bold text-gray-500">
+                    <span class="w-6"></span> <!-- Space for Radio -->
+                    <span class="w-12 text-center">ID</span>
+                    <span class="w-16 text-center">L</span>
+                    <span class="w-16 text-center">B</span>
                 </div>
                 <div class="grid grid-cols-3 gap-2 pt-1">
                     <input type="number" id="input_roll" class="input-field w-full" value="1.25" step="0.1">
@@ -171,6 +171,8 @@
                     <input type="number" id="input_bounce" class="input-field w-full" value="50">
                 </div>
             </div>
+
+            
             
             <button onclick="runCalculation()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow mt-2">
                 Calculate & Plot
@@ -199,43 +201,47 @@
         // 1. DATA & CONSTANTS
         // =================================================================
         
-        const PIVOT_POINT = { x: 0, y: 1100 };
+        let PIVOT_POINT = { x: 0, y: 1100 };
 
-        // Parsed Outline Data
+        // Parsed Outline Data (Updated Structure)
         const OUTLINE_DATA_SETS = {
-            1: [
-                {x:0,y:65,type:1}, {x:1195,y:65,type:1}, {x:1245,y:180,type:1},
-                {x:1245,y:305,type:1}, {x:1270,y:305,type:1}, {x:1270,y:535,type:1},
-                {x:1220,y:535,type:1}, {x:1220,y:825,type:1}, {x:1315,y:915,type:1},
-                {x:1425,y:915,type:1}, 
-                {x:1425,y:3250,type:2, cx:-328, cy:1468, r:2500},
-                {x:250,y:3900,type:1}, {x:0,y:3900,type:1}
-            ],
-            2: [
-                {x:0,y:65,type:1}, {x:1195,y:65,type:1}, {x:1245,y:180,type:1},
-                {x:1245,y:305,type:1}, {x:1270,y:305,type:1}, {x:1270,y:535,type:1},
-                {x:1245,y:535,type:1}, {x:1245,y:845,type:1}, {x:1315,y:915,type:1},
-                {x:1450,y:915,type:1}, {x:1450,y:2845,type:1}, {x:1412,y:3415,type:1},
-                {x:1040,y:3900,type:1}, {x:0,y:3900,type:1}
-            ],
-            3: [
-                {x:0,y:65,type:1}, {x:1195,y:65,type:1}, {x:1245,y:180,type:1},
-                {x:1245,y:305,type:1}, {x:1270,y:305,type:1}, {x:1270,y:535,type:1},
-                {x:1245,y:535,type:1}, {x:1245,y:845,type:1}, {x:1315,y:915,type:1},
-                {x:1450,y:915,type:1}, {x:1450,y:2845,type:1}, {x:1400,y:3600,type:1},
-                {x:1080,y:3900,type:1}, {x:0,y:3900,type:1}
-            ],
-            4: [
-                {x:0,y:65,type:1}, {x:1195,y:65,type:1}, {x:1245,y:180,type:1},
-                {x:1245,y:305,type:1}, {x:1270,y:305,type:1}, {x:1270,y:535,type:1},
-                {x:1245,y:535,type:1}, {x:1245,y:845,type:1}, {x:1315,y:915,type:1},
-                {x:1430,y:915,type:1}, {x:1430,y:1850,type:1}, {x:1350,y:3250,type:1},
-                {x:1000,y:3584.9943,type:2, cx:-328, cy:1468, r:2500},
-                {x:247,y:3900,type:1}, {x:0,y:3900,type:1}
-            ]
+            'RS1.1': {
+                L: 16200, B: 11000, h_roll: 1100,
+                points: [
+                    {x:0, y:65}, {x:1195, y:65}, {x:1245, y:180}, {x:1245, y:305}, {x:1270, y:305},
+                    {x:1270, y:535}, {x:1220, y:535}, {x:1220, y:825}, {x:1315, y:915}, {x:1425, y:915},
+                    {x:1425, y:3250}, {x:1350, y:3321}, {x:1250, y:3407}, {x:1100, y:3520}, {x:950, y:3617},
+                    {x:800, y:3699}, {x:650, y:3769}, {x:550, y:3809}, {x:450, y:3844}, {x:350, y:3874},
+                    {x:250, y:3900}, {x:0, y:3900}
+                ]
+            },
+            'RS2.1': {
+                L: 19150, B: 14000, h_roll: 1100,
+                points: [
+                    {x:0, y:65}, {x:1195, y:65}, {x:1245, y:180}, {x:1245, y:305}, {x:1270, y:305},
+                    {x:1270, y:535}, {x:1245, y:535}, {x:1245, y:845}, {x:1315, y:915}, {x:1450, y:915},
+                    {x:1450, y:2845}, {x:1412, y:3415}, {x:1040, y:3900}, {x:930, y:3920}, {x:346, y:3950}, {x:0, y:3950}
+                ]
+            },
+            'RS3.1': {
+                L: 19150, B: 14000, h_roll: 1100,
+                points: [
+                    {x:0, y:65}, {x:1195, y:65}, {x:1245, y:180}, {x:1245, y:305}, {x:1270, y:305},
+                    {x:1270, y:535}, {x:1245, y:535}, {x:1245, y:845}, {x:1315, y:915}, {x:1450, y:915},
+                    {x:1450, y:2845}, {x:1400, y:3600}, {x:1080, y:3900}, {x:0, y:3900}
+                ]
+            },
+            'RS4.1': {
+                L: 21000, B: 15850, h_roll: 1100,
+                points: [
+                    {x:0, y:65}, {x:1195, y:65}, {x:1245, y:180}, {x:1245, y:305}, {x:1270, y:305},
+                    {x:1270, y:535}, {x:1245, y:535}, {x:1245, y:845}, {x:1315, y:915}, {x:1430, y:915},
+                    {x:1430, y:1850}, {x:1350, y:3250}, {x:700, y:3900}, {x:0, y:3900}
+                ]
+            }
         };
 
-        let currentOutlineId = 4;
+        let currentOutlineId = 'RS4.1';
 
         // =================================================================
         // 2. MATH HELPERS
@@ -253,27 +259,6 @@
                 x: cx + dx * c - dy * s,
                 y: cy + dx * s + dy * c
             };
-        }
-
-        function getArcPoints(pStart, pEnd, cx, cy, radius, numPoints = 20) {
-            let startAngle = Math.atan2(pStart.y - cy, pStart.x - cx);
-            let endAngle = Math.atan2(pEnd.y - cy, pEnd.x - cx);
-
-            // Handle wrapping across PI/-PI boundary
-            if (Math.abs(endAngle - startAngle) > Math.PI) {
-                if (endAngle > startAngle) startAngle += 2 * Math.PI;
-                else endAngle += 2 * Math.PI;
-            }
-
-            const points = [];
-            for (let i = 0; i <= numPoints; i++) {
-                const t = startAngle + (endAngle - startAngle) * (i / numPoints);
-                points.push({
-                    x: cx + radius * Math.cos(t),
-                    y: cy + radius * Math.sin(t)
-                });
-            }
-            return points;
         }
 
         // Linear interpolation to find X at a given Y
@@ -329,11 +314,16 @@
             runCalculation();
         }
 
-        function setOutline(id, L, B) {
+        function setOutline(id) {
             currentOutlineId = id;
-            document.getElementById('input_L_outline').value = L;
-            document.getElementById('input_B_outline').value = B;
-            runCalculation();
+            const data = OUTLINE_DATA_SETS[id];
+            
+            if (data) {
+                document.getElementById('input_L_outline').value = data.L;
+                document.getElementById('input_B_outline').value = data.B;
+                if(data.h_roll) PIVOT_POINT.y = data.h_roll;
+                runCalculation();
+            }
         }
 
         function runCalculation() {
@@ -355,24 +345,7 @@
             const bounce = parseFloat(document.getElementById('input_bounce').value);
 
             // --- CURVE DYNAMICS LOGIC ---
-            // CW (Clockwise/Right Turn):
-            //   - Lateral Force to Outside (Left).
-            //   - Left Side = End Throw (Headswing).
-            //   - Right Side = Center Throw (Centerswing).
             
-            // CCW (Counter-Clockwise/Left Turn):
-            //   - Lateral Force to Outside (Right).
-            //   - Right Side = End Throw.
-            //   - Left Side = Center Throw.
-
-            // 1. Roll Angle 
-            // NOTE: Modified to apply MAX ROLL both ways for the envelope.
-            // For Visualization of "Rotated Static" (Nominal case), we still use the single angle:
-            const nominalRollAngle = isCW ? Math.abs(rollMag) : -Math.abs(rollMag);
-
-            // 2. Lateral Shift (Standard: Pos X = Right, Neg X = Left)
-            // CW Curve -> Force Left -> Negative X ? (Check LatMag logic: latMag is positive, isCW check usually implies direction)
-            // Existing logic:
             const latGlobal = isCW ? latMag : -latMag;
 
             // 2. Calculate Throws
@@ -389,8 +362,21 @@
             }
 
             // 3. Prepare Outline Data
-            const rawPoints = OUTLINE_DATA_SETS[currentOutlineId];
-            if(!rawPoints) return;
+            const dataset = OUTLINE_DATA_SETS[currentOutlineId];
+            if(!dataset || !dataset.points) return;
+            const rawPoints = dataset.points;
+
+            // --- FIND SPLIT POINT FOR BOUNCE LOGIC ---
+            // The user requested that bounce only applies "after" point {x:1270, y:535}.
+            // This is the boundary between the static underframe and the suspended body.
+            // We find the index of this point in the raw definition.
+            let bounceCutIndex = -1;
+            bounceCutIndex = rawPoints.findIndex(p => p.x === 1270 && p.y === 535);
+            // If not found, we default to -1 (bounce applies to all or none? Usually all is safer if logic fails)
+            // But based on request, "only after", implies if not found, maybe none? 
+            // We will stick to -1 meaning "apply to all" to be safe, or logic:
+            // Actually, if we can't find the cut point, maybe we assume the whole body is suspended.
+            // But let's assume valid data for these specific gauges.
 
             const ys = rawPoints.map(p => p.y);
             const minY = Math.min(...ys);
@@ -430,52 +416,60 @@
                     const sx1 = curr.x * xMult, sy1 = curr.y;
                     const sx2 = next.x * xMult, sy2 = next.y;
                     
-                    let segPoints = [];
-                    if(curr.type === 1) {
-                        segPoints.push({x: sx1, y: sy1});
-                        segPoints.push({x: sx2, y: sy2});
-                    } else if(curr.type === 2) {
-                        const cx = curr.cx * xMult;
-                        const arcPts = getArcPoints({x:sx1, y:sy1}, {x:sx2, y:sy2}, cx, curr.cy, curr.r);
-                        segPoints = arcPts;
+                    // Determine bounce for each point independently
+                    // Bounce is applied if the point comes strictly AFTER the cut index in sequence
+                    let b1 = 0, b2 = 0;
+
+                    if (bounceCutIndex !== -1) {
+                        if (i > bounceCutIndex) b1 = bounce;
+                        if ((i + 1) > bounceCutIndex) b2 = bounce;
+                    } else {
+                        // If cut point not found, apply global bounce (fallback)
+                        b1 = bounce;
+                        b2 = bounce;
                     }
+
+                    const segPoints = [
+                        {x: sx1, y: sy1, bounceOffset: b1},
+                        {x: sx2, y: sy2, bounceOffset: b2}
+                    ];
                     
                     segPoints.forEach(p => {
                         // 1. Original Static (Upright)
                         polyCoords[side].static_x.push(p.x);
                         polyCoords[side].static_y.push(p.y);
 
-                        // 2. Rotated Static (Just the nominal body rotated, no throw/lat)
-                        const rotS = getRotatedCoords(p.x, p.y, nominalRollAngle, PIVOT_POINT.x, PIVOT_POINT.y);
+                        // 2. Rotated Static (Max Roll Both Ways - to match Env)
+                        const rotS1 = getRotatedCoords(p.x, p.y, Math.abs(rollMag), PIVOT_POINT.x, PIVOT_POINT.y);
+                        const rotS2 = getRotatedCoords(p.x, p.y, -Math.abs(rollMag), PIVOT_POINT.x, PIVOT_POINT.y);
+                        
+                        let rotS;
+                        if (side === 'right') {
+                            rotS = (rotS1.x > rotS2.x) ? rotS1 : rotS2;
+                        } else {
+                            rotS = (rotS1.x < rotS2.x) ? rotS1 : rotS2;
+                        }
+
                         polyCoords[side].rot_static_x.push(rotS.x);
                         polyCoords[side].rot_static_y.push(p.y);
 
                         // 3. Apply Body Deformations (Throw) & Suspension (Bounce)
-                        // This establishes the vehicle shape in its local frame.
+                        // APPLY CONDITIONAL BOUNCE HERE
                         const x_local = p.x + (throwVal * xMult);
-                        
-                        // FIX: Uniform bounce (rigid body) 
-                        const y_local = p.y + bounce; 
+                        const y_local = p.y + p.bounceOffset; 
 
                         // B. Rotate (Roll) - MAX ROLL BOTH SIDES LOGIC
-                        // Calculate both Positive Roll (+Deg) and Negative Roll (-Deg).
-                        // Select the one that pushes the vehicle outline furthest "outwards" (Max Width).
-                        
-                        // Calculate both options
                         const rotOpt1 = getRotatedCoords(x_local, y_local, Math.abs(rollMag), PIVOT_POINT.x, PIVOT_POINT.y);
                         const rotOpt2 = getRotatedCoords(x_local, y_local, -Math.abs(rollMag), PIVOT_POINT.x, PIVOT_POINT.y);
 
                         let rot;
                         if (side === 'right') {
-                            // For Right Side (positive X): Pick the result with the largest X
                             rot = (rotOpt1.x > rotOpt2.x) ? rotOpt1 : rotOpt2;
                         } else {
-                            // For Left Side (negative X): Pick the result with the smallest X (most negative)
                             rot = (rotOpt1.x < rotOpt2.x) ? rotOpt1 : rotOpt2;
                         }
 
                         // C. Translate (Lateral Shift)
-                        // Shift the now-rotated body laterally. 
                         const final_x = rot.x + latGlobal;
                         const final_y = y_local; 
                         
@@ -486,6 +480,8 @@
             });
 
             // 5. Calculate Study Points
+            // Note: If h is low (e.g. 400), it might be below the bounce cut-off. 
+            // However, usually study points track the "body". We leave this logic simple.
             const h_bounced = h + ((h - minY) / vHeight) * bounce;
             const studyPoints = [];
             const results = [];
@@ -866,7 +862,7 @@
             const items = [
                 { color: 'black', text: 'Pivot (0, 1100)', type: 'symbol', symbol: '+' },
                 { color: 'rgba(230, 249, 230, 1)', text: 'Max Roll Env', type: 'rect' },
-                { color: 'rgba(59, 130, 246, 0.4)', text: 'Static (Nominal)', type: 'dottedRect' },
+                { color: 'rgba(59, 130, 246, 0.4)', text: 'Static (Max Roll)', type: 'dottedRect' },
                 { color: '#2563eb', text: 'Original Static', type: 'line' },
                 { color: '#008000', text: 'Point (ET/CT)', type: 'symbol', symbol: '+' },
                 { color: 'red', text: 'Δ Static (Red)', type: 'dashed' },
@@ -912,7 +908,9 @@
             }
         });
         window.addEventListener('resize', runCalculation);
-        window.onload = runCalculation;
+        window.onload = function() {
+            setOutline('RS4.1'); // Init default
+        };
 
     </script>
 </body>
