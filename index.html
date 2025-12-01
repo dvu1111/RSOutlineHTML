@@ -150,13 +150,14 @@
                     <span class="bg-blue-100 text-blue-800 px-2 rounded text-xs">Left Turn</span>
                 </div>
                 <div class="mt-2 text-xs text-gray-500">
-                    Controls Roll Direction &amp; Throw Assignment (ET/CT).
+                    Controls Lateral & Throw Direction.<br>
+                    <strong>Roll is now applied max both ways.</strong>
                 </div>
             </div>
 
             <div class="input-group">
                 <div class="flex justify-between mb-2 px-2 text-xs font-bold text-gray-500">
-                    <span class="w-20 text-center">Roll (deg)</span>
+                    <span class="w-20 text-center">Max Roll (deg)</span>
                     <span class="w-20 text-center">Lat (mm)</span>
                     <span class="w-20 text-center">Bounce (mm)</span>
                 </div>
@@ -355,29 +356,24 @@
 
             // --- CURVE DYNAMICS LOGIC ---
             // CW (Clockwise/Right Turn):
-            //   - Outside Rail is Left.
-            //   - Vehicle Rolls to Outside (Left).
             //   - Lateral Force to Outside (Left).
             //   - Left Side = End Throw (Headswing).
             //   - Right Side = Center Throw (Centerswing).
             
             // CCW (Counter-Clockwise/Left Turn):
-            //   - Outside Rail is Right.
-            //   - Vehicle Rolls to Outside (Right).
             //   - Lateral Force to Outside (Right).
             //   - Right Side = End Throw.
             //   - Left Side = Center Throw.
 
-            // 1. Roll Angle (Standard Math: Pos = CCW)
-            // CW Curve -> Roll Left (CCW) -> Positive Angle
-            // CCW Curve -> Roll Right (CW) -> Negative Angle
-            const rollAngle = isCW ? rollMag : -rollMag;
+            // 1. Roll Angle 
+            // NOTE: Modified to apply MAX ROLL both ways for the envelope.
+            // For Visualization of "Rotated Static" (Nominal case), we still use the single angle:
+            const nominalRollAngle = isCW ? Math.abs(rollMag) : -Math.abs(rollMag);
 
             // 2. Lateral Shift (Standard: Pos X = Right, Neg X = Left)
-            // CW Curve -> Force Left -> Negative X
-            // CCW Curve -> Force Right -> Positive X
-            const latGlobal = isCW ? -latMag : latMag;
-
+            // CW Curve -> Force Left -> Negative X ? (Check LatMag logic: latMag is positive, isCW check usually implies direction)
+            // Existing logic:
+            const latGlobal = isCW ? latMag : -latMag;
 
             // 2. Calculate Throws
             let calc_ET = 0, calc_CT = 0; // For Outline
@@ -402,7 +398,6 @@
             const vHeight = (maxY - minY) || 1;
             
             // 4. Generate Polygons
-            // Added throw_type to track what was applied for labeling
             const polyCoords = { 
                 left: {x:[], y:[], static_x:[], static_y:[], rot_static_x:[], rot_static_y:[], throw_type: ''}, 
                 right: {x:[], y:[], static_x:[], static_y:[], rot_static_x:[], rot_static_y:[], throw_type: ''} 
@@ -450,8 +445,8 @@
                         polyCoords[side].static_x.push(p.x);
                         polyCoords[side].static_y.push(p.y);
 
-                        // 2. Rotated Static (Just the body rotated, no throw/lat)
-                        const rotS = getRotatedCoords(p.x, p.y, rollAngle, PIVOT_POINT.x, PIVOT_POINT.y);
+                        // 2. Rotated Static (Just the nominal body rotated, no throw/lat)
+                        const rotS = getRotatedCoords(p.x, p.y, nominalRollAngle, PIVOT_POINT.x, PIVOT_POINT.y);
                         polyCoords[side].rot_static_x.push(rotS.x);
                         polyCoords[side].rot_static_y.push(p.y);
 
@@ -459,18 +454,30 @@
                         // This establishes the vehicle shape in its local frame.
                         const x_local = p.x + (throwVal * xMult);
                         
-                        // FIX: Uniform bounce (rigid body) instead of scaling from const ty = p.y + (p.y - minY) / vHeight * bounce; 
+                        // FIX: Uniform bounce (rigid body) 
                         const y_local = p.y + bounce; 
 
-                        // B. Rotate (Roll)
-                        // Rotate the expanded body around the Pivot Point (Roll Center)
-                        const rot = getRotatedCoords(x_local, y_local, rollAngle, PIVOT_POINT.x, PIVOT_POINT.y);
+                        // B. Rotate (Roll) - MAX ROLL BOTH SIDES LOGIC
+                        // Calculate both Positive Roll (+Deg) and Negative Roll (-Deg).
+                        // Select the one that pushes the vehicle outline furthest "outwards" (Max Width).
+                        
+                        // Calculate both options
+                        const rotOpt1 = getRotatedCoords(x_local, y_local, Math.abs(rollMag), PIVOT_POINT.x, PIVOT_POINT.y);
+                        const rotOpt2 = getRotatedCoords(x_local, y_local, -Math.abs(rollMag), PIVOT_POINT.x, PIVOT_POINT.y);
+
+                        let rot;
+                        if (side === 'right') {
+                            // For Right Side (positive X): Pick the result with the largest X
+                            rot = (rotOpt1.x > rotOpt2.x) ? rotOpt1 : rotOpt2;
+                        } else {
+                            // For Left Side (negative X): Pick the result with the smallest X (most negative)
+                            rot = (rotOpt1.x < rotOpt2.x) ? rotOpt1 : rotOpt2;
+                        }
 
                         // C. Translate (Lateral Shift)
                         // Shift the now-rotated body laterally. 
-                        // Note: latGlobal is added AFTER rotation.
                         const final_x = rot.x + latGlobal;
-                        const final_y = y_local; // IMPORTANT: rot.y is not used because we don't want to capture roll. We want to assess the same y point on the vehicle.
+                        const final_y = y_local; 
                         
                         polyCoords[side].x.push(final_x);
                         polyCoords[side].y.push(final_y); 
@@ -498,17 +505,25 @@
                 }
 
                 // Calc position
-                // Start at w/2 on the correct side
-                // Add Global Lat shift
-                // Add Throw Expansion (Throw is expansion, so moves further out)
-                const x_raw = (w/2 * xMult) + latGlobal + (ptThrowVal * xMult);
+                const x_raw = (w/2 * xMult) + (ptThrowVal * xMult);
                 const y_pos = h_bounced;
 
-                // Rotate
-                const p_rot = getRotatedCoords(x_raw, y_pos, rollAngle, PIVOT_POINT.x, PIVOT_POINT.y);
+                // Rotate - Max Width Logic applied to Study Point too
+                const p_r1 = getRotatedCoords(x_raw, y_pos, Math.abs(rollMag), PIVOT_POINT.x, PIVOT_POINT.y);
+                const p_r2 = getRotatedCoords(x_raw, y_pos, -Math.abs(rollMag), PIVOT_POINT.x, PIVOT_POINT.y);
+                
+                let p_rot;
+                if (side === 'right') {
+                     p_rot = (p_r1.x > p_r2.x) ? p_r1 : p_r2;
+                } else {
+                     p_rot = (p_r1.x < p_r2.x) ? p_r1 : p_r2;
+                }
+
+                // Add lateral
+                const x_pos_lat = p_rot.x + latGlobal;
                 
                 studyPoints.push({
-                    x: p_rot.x, 
+                    x: x_pos_lat, 
                     y: y_pos, 
                     side: side,
                     type: ptThrowType, // Store type for label
@@ -834,7 +849,7 @@
             if (globalStatus === 'FAIL') statusText = "FAIL (Outside)";
             else if (globalStatus === 'BOUNDARY') statusText = "BOUNDARY (On Line)";
             
-            ctx.fillText(`Status: ${statusText} | Roll: ${params.roll.toFixed(1)}° | Lat: ${params.lat.toFixed(1)}mm | Bounce: ${params.bounce.toFixed(1)}mm`, cx, 40);
+            ctx.fillText(`Status: ${statusText} | Max Roll: ±${Math.abs(params.roll).toFixed(1)}° | Lat: ${params.lat.toFixed(1)}mm`, cx, 40);
             ctx.restore();
 
             // --- LEGEND ---
@@ -850,8 +865,8 @@
 
             const items = [
                 { color: 'black', text: 'Pivot (0, 1100)', type: 'symbol', symbol: '+' },
-                { color: 'rgba(230, 249, 230, 1)', text: 'Throw Loop', type: 'rect' },
-                { color: 'rgba(59, 130, 246, 0.4)', text: 'Rotated Static', type: 'dottedRect' },
+                { color: 'rgba(230, 249, 230, 1)', text: 'Max Roll Env', type: 'rect' },
+                { color: 'rgba(59, 130, 246, 0.4)', text: 'Static (Nominal)', type: 'dottedRect' },
                 { color: '#2563eb', text: 'Original Static', type: 'line' },
                 { color: '#008000', text: 'Point (ET/CT)', type: 'symbol', symbol: '+' },
                 { color: 'red', text: 'Δ Static (Red)', type: 'dashed' },
