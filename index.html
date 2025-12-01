@@ -32,6 +32,10 @@
             accent-color: #2563eb; 
             transform: scale(1.2);
         }
+        /* Select styling */
+        select {
+            @apply border border-gray-300 rounded px-2 py-1 text-sm bg-white focus:outline-none focus:border-blue-500;
+        }
     </style>
 </head>
 <body class="bg-gray-50 font-sans text-gray-800 h-screen w-screen overflow-hidden flex flex-col">
@@ -46,7 +50,6 @@
 
             <div class="input-group">
                 <div class="input-row">
-                    <input type="radio" name="rad_sel" checked class="mr-2">
                     <span class="font-bold mr-auto">Radius (R) [m]</span>
                     <input type="number" id="input_R" value="100" class="input-field w-32">
                 </div>
@@ -76,50 +79,24 @@
             </div>
 
             <div class="input-group">
-                <!-- Header with explicit column widths to match rows -->
-                <div class="flex items-center gap-2 mb-2 px-1 text-xs font-bold text-gray-500">
-                    <span class="w-6"></span> <!-- Space for Radio -->
-                    <span class="flex-1">Outline</span>
+                <div class="section-header text-gray-800 flex justify-between items-center">
+                    <span>Outline Selection</span>
                 </div>
 
-                <div class="space-y-1">
-                    <!-- Row 1 -->
-                    <div class="flex items-center gap-2 hover:bg-gray-50 p-1 rounded">
-                        <input type="radio" name="outline_sel" id="rs1" class="w-4 h-4 cursor-pointer" onchange="setOutline('RS1.1')">
-                        <label for="rs1" class="flex-1 cursor-pointer font-medium text-sm">RS1.1</label>
-                        <span class="w-12 text-center text-xs text-gray-400">1.1</span>
-                        <span class="w-16"></span>
-                        <span class="w-16"></span>
-                    </div>
-                    <!-- Row 2 -->
-                    <div class="flex items-center gap-2 hover:bg-gray-50 p-1 rounded">
-                        <input type="radio" name="outline_sel" id="rs2" class="w-4 h-4 cursor-pointer" onchange="setOutline('RS2.1')">
-                        <label for="rs2" class="flex-1 cursor-pointer font-medium text-sm">RS2.1</label>
-                        <span class="w-12 text-center text-xs text-gray-400">2.1</span>
-                        <span class="w-16"></span>
-                        <span class="w-16"></span>
-                    </div>
-                    <!-- Row 3 -->
-                    <div class="flex items-center gap-2 hover:bg-gray-50 p-1 rounded">
-                        <input type="radio" name="outline_sel" id="rs3" class="w-4 h-4 cursor-pointer" onchange="setOutline('RS3.1')">
-                        <label for="rs3" class="flex-1 cursor-pointer font-medium text-sm">RS3.1</label>
-                        <span class="w-12 text-center text-xs text-gray-400">3.1</span>
-                        <span class="w-16"></span>
-                        <span class="w-16"></span>
-                    </div>
-                    <!-- Row 4 -->
-                    <div class="flex items-center gap-2 hover:bg-gray-50 p-1 rounded">
-                        <input type="radio" name="outline_sel" id="rs4" class="w-4 h-4 cursor-pointer" checked onchange="setOutline('RS4.1')">
-                        <label for="rs4" class="flex-1 cursor-pointer font-medium text-sm">RS4.1</label>
-                        <span class="w-12 text-center text-xs text-gray-400">4.1</span>
-                        <span class="w-16"></span>
-                        <span class="w-16"></span>
-                    </div>
+                <!-- Dropdown for Outline -->
+                <div class="flex flex-col gap-2 mb-2">
+                    <label for="outline_select" class="text-xs font-bold text-gray-500">Select Model:</label>
+                    <select id="outline_select" onchange="setOutline(this.value)" class="w-full p-2 border border-gray-300 rounded">
+                        <option value="RS1.1">RS1.1 (L=16200, B=11000)</option>
+                        <option value="RS2.1">RS2.1 (L=19150, B=14000)</option>
+                        <option value="RS3.1">RS3.1 (L=19150, B=14000)</option>
+                        <option value="RS4.1" selected>RS4.1 (L=21000, B=15850)</option>
+                    </select>
                 </div>
 
                 <!-- Active inputs with Labels explicitly beside them -->
                 <div class="border-t border-gray-200 mt-2 pt-2 flex items-center gap-2">
-                    <div class="text-xs font-bold text-gray-500 w-12">Reference Vehicle:</div>
+                    <div class="text-xs font-bold text-gray-500 w-12">Ref Dims:</div>
                     
                     <div class="flex-1 flex items-center gap-1">
                          <span class="text-xs font-bold text-gray-400">L</span>
@@ -133,7 +110,7 @@
                 </div>
             </div>
 
-            <!-- CURVE DIRECTION (New Control) -->
+            <!-- CURVE DIRECTION -->
             <div class="input-group border-l-4 border-l-blue-500">
                 <div class="section-header text-blue-800">Curve Direction</div>
                 <div class="input-row">
@@ -146,9 +123,57 @@
                     <label for="curve_ccw" class="flex-1 cursor-pointer font-bold">Counter-Clockwise</label>
                     <span class="bg-blue-100 text-blue-800 px-2 rounded text-xs">Left Turn</span>
                 </div>
-                <div class="mt-2 text-xs text-gray-500">
-                    Controls Lateral & Throw Direction.<br>
-                    <strong>Roll is now applied max both ways.</strong>
+            </div>
+
+            <!-- TRACK TOLERANCES (New Section) -->
+            <div class="input-group border-l-4 border-l-green-600">
+                <div class="section-header text-green-800 flex items-center gap-2">
+                    <input type="checkbox" id="enable_tolerances" class="w-4 h-4" onchange="updateToleranceInputs()">
+                    <label for="enable_tolerances" class="cursor-pointer select-none">Track Tolerances</label>
+                </div>
+                
+                <div id="tolerances_panel" class="opacity-50 pointer-events-none transition-opacity duration-200">
+                    <div class="mb-2">
+                        <label class="block text-xs font-bold text-gray-600 mb-1">Track Scenario</label>
+                        <select id="track_scenario" class="w-full text-xs" onchange="updateToleranceInputs()">
+                            <option value="ballasted_open">Ballasted open track</option>
+                            <option value="ballasted_prescribed">Ballasted track in prescribed locations</option>
+                            <option value="fixed_track">Fixed track</option>
+                            <option value="fouling_point">Fouling Point - both tracks</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="block text-xs font-bold text-gray-600 mb-1">Radius Scenario</label>
+                        <select id="radius_scenario" class="w-full text-xs" onchange="updateToleranceInputs()">
+                            <option value="gt_1000">Lateral Tolerance [mm] – Radius >1000m</option>
+                            <option value="lte_1000">Lateral Tolerance [mm] – Radius ≤ 1000m</option>
+                        </select>
+                    </div>
+
+                    <!-- Editable Tolerance Fields -->
+                    <div class="mt-2 pt-2 border-t border-gray-200 grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500">Lat Tol (mm)</label>
+                            <input type="number" id="input_tol_lat" class="input-field w-full h-6 text-xs" onchange="runCalculation()">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500">Vert Tol (mm)</label>
+                            <input type="number" id="input_tol_vert" class="input-field w-full h-6 text-xs" onchange="runCalculation()">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500">Cant Tol (mm)</label>
+                            <input type="number" id="input_tol_cant" class="input-field w-full h-6 text-xs" onchange="runCalculation()">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500">GW Tol (mm)</label>
+                            <input type="number" id="input_tol_gw" class="input-field w-full h-6 text-xs" onchange="runCalculation()">
+                        </div>
+                    </div>
+
+                    <div class="text-[10px] text-gray-500 italic mt-1 leading-tight">
+                        *Values populated from Table 13.<br>
+                        *You can manually edit values above.
+                    </div>
                 </div>
             </div>
 
@@ -160,15 +185,20 @@
                 </div>
 
                 <div class="flex items-center gap-2 mb-2 px-1 text-xs font-bold text-gray-500">
-                    <span class="w-6"></span> <!-- Space for Radio -->
+                    <span class="w-6"></span>
                     <span class="w-12 text-center">ID</span>
                     <span class="w-16 text-center">L</span>
                     <span class="w-16 text-center">B</span>
                 </div>
-                <div class="grid grid-cols-3 gap-2 pt-1">
+                <div class="grid grid-cols-3 gap-2 pt-1 mb-3">
                     <input type="number" id="input_roll" class="input-field w-full" value="1.25" step="0.1">
                     <input type="number" id="input_lat" class="input-field w-full" value="43">
                     <input type="number" id="input_bounce" class="input-field w-full" value="50">
+                </div>
+                
+                <div class="flex items-center gap-2 px-1 pt-2 border-t border-gray-200">
+                    <label for="input_bounce_y" class="text-xs font-bold text-gray-700 w-auto">Bounce Start Y:</label>
+                    <input type="number" id="input_bounce_y" class="input-field flex-1" value="535" title="Apply bounce only to points above this Y height">
                 </div>
             </div>
 
@@ -178,17 +208,15 @@
                 Calculate & Plot
             </button>
 
-             <!-- Removed text-based output, moved to canvas -->
              <div class="mt-4 text-xs text-gray-400 text-center">
                  Calculated values are now displayed directly on the graph.
              </div>
 
         </div>
 
-        <!-- VISUALIZATION PANEL (Fills Remaining Space) -->
+        <!-- VISUALIZATION PANEL -->
         <div class="lg:col-span-9 h-full p-4 flex flex-col bg-gray-50 overflow-hidden">
             <div class="bg-white rounded-lg shadow-lg p-1 border border-gray-200 flex-1 flex flex-col relative overflow-hidden">
-                <!-- Canvas Container takes full height/width -->
                 <div class="relative w-full h-full">
                     <canvas id="plotCanvas"></canvas>
                 </div>
@@ -203,7 +231,25 @@
         
         let PIVOT_POINT = { x: 0, y: 1100 };
 
-        // Parsed Outline Data (Updated Structure)
+        const TRACK_TOLERANCES = {
+            'ballasted_open': { 
+                lat_gt_1000: 25, lat_lte_1000: 25, 
+                vert: 25, cant: 10, gw: 25 
+            },
+            'ballasted_prescribed': { 
+                lat_gt_1000: 15, lat_lte_1000: 25, 
+                vert: 15, cant: 10, gw: 25 
+            },
+            'fixed_track': { 
+                lat_gt_1000: 5, lat_lte_1000: 5, 
+                vert: 5, cant: 5, gw: 15 
+            },
+            'fouling_point': { 
+                lat_gt_1000: 5, lat_lte_1000: 5, 
+                vert: 5, cant: 5, gw: 15 
+            }
+        };
+
         const OUTLINE_DATA_SETS = {
             'RS1.1': {
                 L: 16200, B: 11000, h_roll: 1100,
@@ -248,6 +294,7 @@
         // =================================================================
 
         function radians(deg) { return deg * Math.PI / 180; }
+        function degrees(rad) { return rad * 180 / Math.PI; }
 
         function getRotatedCoords(x, y, angleDeg, cx, cy) {
             const rad = radians(angleDeg);
@@ -271,7 +318,6 @@
                 const y1 = p1.y, y2 = p2.y;
                 const x1 = p1.x, x2 = p2.x;
 
-                // Check interval
                 if ((y1 <= targetY && targetY <= y2) || (y2 <= targetY && targetY <= y1)) {
                     if (y1 === y2) {
                         intersections.push(x1, x2);
@@ -282,12 +328,10 @@
                     }
                 }
             }
-
             if (intersections.length === 0) return null;
             return side === 'right' ? Math.max(...intersections) : Math.min(...intersections);
         }
 
-        // Point inside polygon (Ray casting)
         function pointInPolygon(point, vs) {
             let x = point.x, y = point.y;
             let inside = false;
@@ -306,14 +350,6 @@
         // 3. UI HANDLERS
         // =================================================================
 
-        function setVehicle(L, B, h, w) {
-            document.getElementById('input_L_veh').value = L;
-            document.getElementById('input_B_veh').value = B;
-            document.getElementById('input_h').value = h;
-            document.getElementById('input_w').value = w;
-            runCalculation();
-        }
-
         function setOutline(id) {
             currentOutlineId = id;
             const data = OUTLINE_DATA_SETS[id];
@@ -326,8 +362,23 @@
             }
         }
 
+        function updateToleranceInputs() {
+            const scenarioKey = document.getElementById('track_scenario').value;
+            const radiusKey = document.getElementById('radius_scenario').value;
+            const data = TRACK_TOLERANCES[scenarioKey];
+            
+            if (data) {
+                const lat = (radiusKey === 'gt_1000') ? data.lat_gt_1000 : data.lat_lte_1000;
+                document.getElementById('input_tol_lat').value = lat;
+                document.getElementById('input_tol_vert').value = data.vert;
+                document.getElementById('input_tol_cant').value = data.cant;
+                document.getElementById('input_tol_gw').value = data.gw;
+            }
+            runCalculation();
+        }
+
         function runCalculation() {
-            // 1. Gather Inputs
+            // 1. Gather Basic Inputs
             const R_meters = parseFloat(document.getElementById('input_R').value);
             const R_mm = R_meters * 1000;
 
@@ -340,20 +391,47 @@
             const B_outline = parseFloat(document.getElementById('input_B_outline').value);
             
             const isCW = document.getElementById('curve_cw').checked;
-            const rollMag = parseFloat(document.getElementById('input_roll').value);
-            const latMag = parseFloat(document.getElementById('input_lat').value);
-            const bounce = parseFloat(document.getElementById('input_bounce').value);
+            let rollMag = parseFloat(document.getElementById('input_roll').value);
+            const inputLat = parseFloat(document.getElementById('input_lat').value);
+            let bounce = parseFloat(document.getElementById('input_bounce').value);
+            const bounceYThreshold = parseFloat(document.getElementById('input_bounce_y').value);
 
-            // --- CURVE DYNAMICS LOGIC ---
+            // --- 2. Track Tolerance Logic ---
+            const useTolerances = document.getElementById('enable_tolerances').checked;
+            const tolPanel = document.getElementById('tolerances_panel');
             
-            const latGlobal = isCW ? latMag : -latMag;
+            let tolLatShift = 0; 
+            let cantTolAngleDeg = 0;
 
-            // 2. Calculate Throws
-            let calc_ET = 0, calc_CT = 0; // For Outline
-            let veh_ET = 0, veh_CT = 0;   // For Points
+            if (useTolerances) {
+                tolPanel.classList.remove('opacity-50', 'pointer-events-none');
+                
+                // Read from manual override fields
+                const t_lat = parseFloat(document.getElementById('input_tol_lat').value) || 0;
+                const t_vert = parseFloat(document.getElementById('input_tol_vert').value) || 0;
+                const t_cant = parseFloat(document.getElementById('input_tol_cant').value) || 0;
+                const t_gw = parseFloat(document.getElementById('input_tol_gw').value) || 0;
+
+                // Vertical Tolerance -> Adds to bounce
+                bounce += t_vert;
+                
+                // Cant Tolerance -> Calculated as angle
+                const cantAngleRad = t_cant / 1137;
+                cantTolAngleDeg = degrees(cantAngleRad);
+                
+                // Gauge Widening + Lateral -> Adds to lateral both sides
+                tolLatShift = t_lat + t_gw;
+
+            } else {
+                tolPanel.classList.add('opacity-50', 'pointer-events-none');
+            }
+
+
+            // 3. Calculate Throws (Kinematic)
+            let calc_ET = 0, calc_CT = 0;
+            let veh_ET = 0, veh_CT = 0;
 
             if (R_mm !== 0) {
-                // Formula: (L^2 - B^2) / 8R
                 calc_ET = (Math.pow(L_outline, 2) - Math.pow(B_outline, 2)) / (8 * R_mm);
                 calc_CT = Math.pow(B_outline, 2) / (8 * R_mm);
 
@@ -361,54 +439,66 @@
                 veh_CT = Math.pow(B_veh, 2) / (8 * R_mm);
             }
 
-            // 3. Prepare Outline Data
+            // 4. Prepare Outline Data
             const dataset = OUTLINE_DATA_SETS[currentOutlineId];
             if(!dataset || !dataset.points) return;
             const rawPoints = dataset.points;
-
-            // --- FIND SPLIT POINT FOR BOUNCE LOGIC ---
-            // The user requested that bounce only applies "after" point {x:1270, y:535}.
-            // This is the boundary between the static underframe and the suspended body.
-            // We find the index of this point in the raw definition.
-            let bounceCutIndex = -1;
-            bounceCutIndex = rawPoints.findIndex(p => p.x === 1270 && p.y === 535);
-            // If not found, we default to -1 (bounce applies to all or none? Usually all is safer if logic fails)
-            // But based on request, "only after", implies if not found, maybe none? 
-            // We will stick to -1 meaning "apply to all" to be safe, or logic:
-            // Actually, if we can't find the cut point, maybe we assume the whole body is suspended.
-            // But let's assume valid data for these specific gauges.
-
+            
+            // Calc bounce factor height
             const ys = rawPoints.map(p => p.y);
             const minY = Math.min(...ys);
             const maxY = Math.max(...ys);
             const vHeight = (maxY - minY) || 1;
-            
-            // 4. Generate Polygons
+
             const polyCoords = { 
                 left: {x:[], y:[], static_x:[], static_y:[], rot_static_x:[], rot_static_y:[], throw_type: ''}, 
                 right: {x:[], y:[], static_x:[], static_y:[], rot_static_x:[], rot_static_y:[], throw_type: ''} 
             };
 
+            // DEFINE ROLL ANGLES (ASYMMETRIC)
+            // 1. Initial: Max roll applies to both directions (Envelope)
+            // Left Lean (Positive), Right Lean (Negative)
+            let rollLeftAngle = Math.abs(rollMag);
+            let rollRightAngle = -Math.abs(rollMag);
+
+            // 2. Apply Cant Tolerance (Directional only)
+            // CW (Right Turn) -> Cant adds to Right Lean
+            // CCW (Left Turn) -> Cant adds to Left Lean
+            if (isCW) {
+                // Right turn: Track banked right. Vehicle tilts further right.
+                // Subtract cant from negative roll (making it more negative)
+                rollRightAngle -= cantTolAngleDeg;
+            } else {
+                // Left turn: Track banked left. Vehicle tilts further left.
+                // Add cant to positive roll
+                rollLeftAngle += cantTolAngleDeg;
+            }
+
             ['right', 'left'].forEach(side => {
                 const xMult = (side === 'right') ? 1 : -1;
 
-                // Determine Throw based on Curve Direction & Side
+                // Determine Geometric Throw
                 let throwVal = 0;
                 let throwTypeLabel = '';
 
                 if (isCW) {
-                    // Clockwise: Left=ET, Right=CT
                     if (side === 'left') { throwVal = calc_ET; throwTypeLabel = 'ET'; }
                     else { throwVal = calc_CT; throwTypeLabel = 'CT'; }
                 } else {
-                    // Counter-Clockwise: Left=CT, Right=ET
                     if (side === 'left') { throwVal = calc_CT; throwTypeLabel = 'CT'; }
                     else { throwVal = calc_ET; throwTypeLabel = 'ET'; }
                 }
                 
                 polyCoords[side].throw_type = throwTypeLabel;
 
-                // Iterate segments
+                // Standard Lateral Shift (Play) - Post-Rotation
+                // Right side gets +Lat, Left side gets -Lat
+                const stdLatShift = (side === 'right') ? inputLat : -inputLat;
+
+                // Tolerance Lateral Shift - Pre-Rotation (Expands outward on both sides)
+                // If side is Right, we add positive. If Left, we add negative (move left).
+                const preRotTolShift = (side === 'right') ? tolLatShift : -tolLatShift;
+
                 for(let i=0; i<rawPoints.length-1; i++) {
                     const curr = rawPoints[i];
                     const next = rawPoints[i+1];
@@ -416,18 +506,8 @@
                     const sx1 = curr.x * xMult, sy1 = curr.y;
                     const sx2 = next.x * xMult, sy2 = next.y;
                     
-                    // Determine bounce for each point independently
-                    // Bounce is applied if the point comes strictly AFTER the cut index in sequence
-                    let b1 = 0, b2 = 0;
-
-                    if (bounceCutIndex !== -1) {
-                        if (i > bounceCutIndex) b1 = bounce;
-                        if ((i + 1) > bounceCutIndex) b2 = bounce;
-                    } else {
-                        // If cut point not found, apply global bounce (fallback)
-                        b1 = bounce;
-                        b2 = bounce;
-                    }
+                    let b1 = (curr.y > bounceYThreshold) ? bounce : 0;
+                    let b2 = (next.y > bounceYThreshold) ? bounce : 0;
 
                     const segPoints = [
                         {x: sx1, y: sy1, bounceOffset: b1},
@@ -439,29 +519,32 @@
                         polyCoords[side].static_x.push(p.x);
                         polyCoords[side].static_y.push(p.y);
 
-                        // 2. Rotated Static (Max Roll Both Ways - to match Env)
-                        const rotS1 = getRotatedCoords(p.x, p.y, Math.abs(rollMag), PIVOT_POINT.x, PIVOT_POINT.y);
-                        const rotS2 = getRotatedCoords(p.x, p.y, -Math.abs(rollMag), PIVOT_POINT.x, PIVOT_POINT.y);
+                        // 2. Rotated Static (Max Roll + Cant + Lateral Shift)
+                        // Calculate both potential roll extremes to determine the outer envelope for the static line
+                        const rotS_opt1 = getRotatedCoords(p.x, p.y, rollLeftAngle, PIVOT_POINT.x, PIVOT_POINT.y);
+                        const rotS_opt2 = getRotatedCoords(p.x, p.y, rollRightAngle, PIVOT_POINT.x, PIVOT_POINT.y);
                         
                         let rotS;
                         if (side === 'right') {
-                            rotS = (rotS1.x > rotS2.x) ? rotS1 : rotS2;
+                            rotS = (rotS_opt1.x > rotS_opt2.x) ? rotS_opt1 : rotS_opt2;
                         } else {
-                            rotS = (rotS1.x < rotS2.x) ? rotS1 : rotS2;
+                            rotS = (rotS_opt1.x < rotS_opt2.x) ? rotS_opt1 : rotS_opt2;
                         }
 
-                        polyCoords[side].rot_static_x.push(rotS.x);
+                        polyCoords[side].rot_static_x.push(rotS.x + stdLatShift); 
                         polyCoords[side].rot_static_y.push(p.y);
 
-                        // 3. Apply Body Deformations (Throw) & Suspension (Bounce)
-                        // APPLY CONDITIONAL BOUNCE HERE
-                        const x_local = p.x + (throwVal * xMult);
-                        const y_local = p.y + p.bounceOffset; 
+                        // 3. DYNAMIC CALCULATION
+                        
+                        // A. Pre-Rotation Translation (Throw + Tolerance Lateral + Tolerance GW)
+                        const x_pre = p.x + (throwVal * xMult) + preRotTolShift;
+                        const y_pre = p.y + p.bounceOffset; // Bounce (includes vert tol)
 
-                        // B. Rotate (Roll) - MAX ROLL BOTH SIDES LOGIC
-                        const rotOpt1 = getRotatedCoords(x_local, y_local, Math.abs(rollMag), PIVOT_POINT.x, PIVOT_POINT.y);
-                        const rotOpt2 = getRotatedCoords(x_local, y_local, -Math.abs(rollMag), PIVOT_POINT.x, PIVOT_POINT.y);
+                        // B. Rotation - Calculate BOTH extremes
+                        const rotOpt1 = getRotatedCoords(x_pre, y_pre, rollLeftAngle, PIVOT_POINT.x, PIVOT_POINT.y);
+                        const rotOpt2 = getRotatedCoords(x_pre, y_pre, rollRightAngle, PIVOT_POINT.x, PIVOT_POINT.y);
 
+                        // Pick the one that pushes OUTWARDS for this side
                         let rot;
                         if (side === 'right') {
                             rot = (rotOpt1.x > rotOpt2.x) ? rotOpt1 : rotOpt2;
@@ -469,10 +552,10 @@
                             rot = (rotOpt1.x < rotOpt2.x) ? rotOpt1 : rotOpt2;
                         }
 
-                        // C. Translate (Lateral Shift)
-                        const final_x = rot.x + latGlobal;
-                        const final_y = y_local; 
-                        
+                        // C. Post-Rotation Translation (Standard Lateral Play/Bumpstop)
+                        const final_x = rot.x + stdLatShift;
+                        const final_y = y_pre; // Simplified Y (using input bounce logic, not strictly geometric drop from roll)
+
                         polyCoords[side].x.push(final_x);
                         polyCoords[side].y.push(final_y); 
                     });
@@ -480,8 +563,6 @@
             });
 
             // 5. Calculate Study Points
-            // Note: If h is low (e.g. 400), it might be below the bounce cut-off. 
-            // However, usually study points track the "body". We leave this logic simple.
             const h_bounced = h + ((h - minY) / vHeight) * bounce;
             const studyPoints = [];
             const results = [];
@@ -489,7 +570,6 @@
             ['right', 'left'].forEach(side => {
                 const xMult = (side === 'right') ? 1 : -1;
                 
-                // Determine Throw for Study Points (using veh_ET/veh_CT)
                 let ptThrowVal = 0;
                 let ptThrowType = '';
                 if (isCW) {
@@ -500,44 +580,44 @@
                     else { ptThrowVal = veh_ET; ptThrowType = 'ET'; }
                 }
 
-                // Calc position
-                const x_raw = (w/2 * xMult) + (ptThrowVal * xMult);
+                const stdLatShift = (side === 'right') ? inputLat : -inputLat;
+                const preRotTolShift = (side === 'right') ? tolLatShift : -tolLatShift;
+
+                // A. Pre-Rotation
+                const x_raw = (w/2 * xMult) + (ptThrowVal * xMult) + preRotTolShift;
                 const y_pos = h_bounced;
 
-                // Rotate - Max Width Logic applied to Study Point too
-                const p_r1 = getRotatedCoords(x_raw, y_pos, Math.abs(rollMag), PIVOT_POINT.x, PIVOT_POINT.y);
-                const p_r2 = getRotatedCoords(x_raw, y_pos, -Math.abs(rollMag), PIVOT_POINT.x, PIVOT_POINT.y);
+                // B. Rotate (Envelope Logic)
+                const p_r1 = getRotatedCoords(x_raw, y_pos, rollLeftAngle, PIVOT_POINT.x, PIVOT_POINT.y);
+                const p_r2 = getRotatedCoords(x_raw, y_pos, rollRightAngle, PIVOT_POINT.x, PIVOT_POINT.y);
                 
                 let p_rot;
                 if (side === 'right') {
-                     p_rot = (p_r1.x > p_r2.x) ? p_r1 : p_r2;
+                    p_rot = (p_r1.x > p_r2.x) ? p_r1 : p_r2;
                 } else {
-                     p_rot = (p_r1.x < p_r2.x) ? p_r1 : p_r2;
+                    p_rot = (p_r1.x < p_r2.x) ? p_r1 : p_r2;
                 }
 
-                // Add lateral
-                const x_pos_lat = p_rot.x + latGlobal;
+                // C. Post-Rotation Shift
+                const x_final = p_rot.x + stdLatShift;
                 
                 studyPoints.push({
-                    x: x_pos_lat, 
+                    x: x_final, 
                     y: y_pos, 
                     side: side,
-                    type: ptThrowType, // Store type for label
-                    color: (ptThrowType === 'ET' ? '#059669' : '#d946ef') // Green(ET) or Magenta(CT)
+                    type: ptThrowType,
+                    color: (ptThrowType === 'ET' ? '#059669' : '#d946ef')
                 });
 
                 const y_check = y_pos; 
 
                 // --- Calculate Deltas ---
-                // 1. Rotated Static Delta
                 const rotStaticPts = polyCoords[side].rot_static_x.map((x, i) => ({x: x, y: polyCoords[side].rot_static_y[i]}));
                 const rotStaticX = getXAtY(y_check, rotStaticPts, side);
                 
-                // 2. Original Static Delta
                 const origStaticPts = polyCoords[side].static_x.map((x, i) => ({x: x, y: polyCoords[side].static_y[i]}));
                 const origStaticX = getXAtY(y_check, origStaticPts, side);
 
-                // 3. Envelope Delta
                 const envPts = polyCoords[side].x.map((x, i) => ({x: x, y: polyCoords[side].y[i]}));
                 const envX = getXAtY(y_check, envPts, side);
 
@@ -552,7 +632,15 @@
             });
 
             // 6. Draw
-            draw(polyCoords, studyPoints, results, {roll: rollMag, lat: latMag, bounce, isCW});
+            draw(polyCoords, studyPoints, results, {
+                roll: rollMag, 
+                cant: cantTolAngleDeg,
+                lat: inputLat, 
+                tolLat: tolLatShift,
+                bounce, 
+                isCW,
+                tolerancesActive: useTolerances
+            });
         }
 
         // =================================================================
@@ -681,7 +769,6 @@
             ctx.stroke();
 
             // --- 2. Draw Rotated Static Vehicle (Dotted Blue + Shaded) ---
-            // Construct polygon
             const rotPoly = [];
             polyCoords.left.rot_static_x.forEach((x, i) => rotPoly.push({x: x, y: polyCoords.left.rot_static_y[i]}));
             for(let i = polyCoords.right.rot_static_x.length - 1; i >= 0; i--) {
@@ -802,8 +889,39 @@
                 ctx.fillText(`${sp.x.toFixed(0)}`, scr.x, height - 5);
 
                 // --- Delta Lines ---
+
+                // A. NEW: Shift Delta (Blue Dashed) - Distance between Original Static and Rotated Static
+                if(res.rotStaticX !== null && res.origStaticX !== null) {
+                    const rotScr = toScreen(res.rotStaticX, sp.y);
+                    const origScr = toScreen(res.origStaticX, sp.y);
+                    const dist = Math.abs(res.rotStaticX - res.origStaticX);
+
+                    // Only draw if there is a meaningful distance
+                    if (dist > 0.5) {
+                        // Draw line between them
+                        ctx.beginPath(); 
+                        ctx.strokeStyle = '#2563eb'; // Blue like the static outlines
+                        ctx.lineWidth = 1; 
+                        ctx.setLineDash([2, 2]);
+                        ctx.moveTo(origScr.x, origScr.y); 
+                        ctx.lineTo(rotScr.x, rotScr.y); 
+                        ctx.stroke();
+
+                        // Draw dots at ends
+                        ctx.fillStyle = '#2563eb';
+                        ctx.beginPath(); ctx.arc(origScr.x, origScr.y, 2, 0, 2*Math.PI); ctx.fill();
+                        ctx.beginPath(); ctx.arc(rotScr.x, rotScr.y, 2, 0, 2*Math.PI); ctx.fill();
+
+                        // Label
+                        const midX = (rotScr.x + origScr.x) / 2;
+                        ctx.font = '10px Arial';
+                        ctx.fillStyle = '#1d4ed8'; // Darker blue
+                        ctx.textAlign = 'center';
+                        ctx.fillText(`Shift: ${dist.toFixed(1)}`, midX, scr.y - 18); 
+                    }
+                }
                 
-                // 1. Static Delta (Red Dotted) - Distance to Rotated Static
+                // B. Static Delta (Red Dotted) - Distance to Rotated Static
                 if(res.rotStaticX !== null) {
                     const statScr = toScreen(res.rotStaticX, sp.y);
                     ctx.beginPath(); ctx.strokeStyle = 'red'; ctx.lineWidth = 1.5; ctx.setLineDash([2, 2]);
@@ -818,7 +936,7 @@
                     ctx.fillText(`Δ ${res.throwType} Static: ${dist.toFixed(1)}`, scr.x + textXOffset, scr.y - 18);
                 }
 
-                // 2. Env Delta Line (Purple Dashed)
+                // C. Env Delta Line (Purple Dashed)
                 if(res.envX !== null) {
                     const envScr = toScreen(res.envX, sp.y);
                     ctx.beginPath(); ctx.strokeStyle = '#800080'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]);
@@ -845,7 +963,8 @@
             if (globalStatus === 'FAIL') statusText = "FAIL (Outside)";
             else if (globalStatus === 'BOUNDARY') statusText = "BOUNDARY (On Line)";
             
-            ctx.fillText(`Status: ${statusText} | Max Roll: ±${Math.abs(params.roll).toFixed(1)}° | Lat: ${params.lat.toFixed(1)}mm`, cx, 40);
+            let tolText = params.tolerancesActive ? ` | Tol Lat: ±${params.tolLat}mm | Cant Tol: ${params.cant.toFixed(2)}°` : "";
+            ctx.fillText(`Status: ${statusText} | Roll: ±${Math.abs(params.roll).toFixed(2)}° | Play: ±${params.lat.toFixed(1)}mm${tolText}`, cx, 40);
             ctx.restore();
 
             // --- LEGEND ---
@@ -854,17 +973,18 @@
 
         function drawLegend(ctx, x, y) {
             const w = 120;
-            const h = 135;
+            const h = 150; 
             ctx.save();
             ctx.fillStyle = 'white'; ctx.strokeStyle = '#999'; ctx.lineWidth = 1;
             ctx.fillRect(x, y, w, h); ctx.strokeRect(x, y, w, h);
 
             const items = [
                 { color: 'black', text: 'Pivot (0, 1100)', type: 'symbol', symbol: '+' },
-                { color: 'rgba(230, 249, 230, 1)', text: 'Max Roll Env', type: 'rect' },
-                { color: 'rgba(59, 130, 246, 0.4)', text: 'Static (Max Roll)', type: 'dottedRect' },
+                { color: 'rgba(230, 249, 230, 1)', text: 'Dynamic Env', type: 'rect' },
+                { color: 'rgba(59, 130, 246, 0.4)', text: 'Static (Rotated)', type: 'dottedRect' },
                 { color: '#2563eb', text: 'Original Static', type: 'line' },
                 { color: '#008000', text: 'Point (ET/CT)', type: 'symbol', symbol: '+' },
+                { color: '#2563eb', text: 'Shift (Lat+Roll)', type: 'dashed' }, 
                 { color: 'red', text: 'Δ Static (Red)', type: 'dashed' },
                 { color: '#800080', text: 'Δ Env (Purple)', type: 'dashed' },
             ];
@@ -902,14 +1022,14 @@
             ctx.restore();
         }
 
-        document.querySelectorAll('input').forEach(inp => {
-            if(inp.type === 'number') {
-                inp.addEventListener('input', runCalculation);
-            }
+        document.querySelectorAll('input, select').forEach(inp => {
+            inp.addEventListener('input', runCalculation);
+            inp.addEventListener('change', runCalculation);
         });
         window.addEventListener('resize', runCalculation);
         window.onload = function() {
-            setOutline('RS4.1'); // Init default
+            setOutline('RS4.1');
+            updateToleranceInputs(); // Initialize inputs
         };
 
     </script>
