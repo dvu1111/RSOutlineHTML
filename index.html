@@ -371,7 +371,7 @@
             // 1. Roll Angle (Standard Math: Pos = CCW)
             // CW Curve -> Roll Left (CCW) -> Positive Angle
             // CCW Curve -> Roll Right (CW) -> Negative Angle
-            const rollAngle = isCW ? Math.abs(rollMag) : -Math.abs(rollMag);
+            const rollAngle = isCW ? rollMag : -rollMag;
 
             // 2. Lateral Shift (Standard: Pos X = Right, Neg X = Left)
             // CW Curve -> Force Left -> Negative X
@@ -473,7 +473,7 @@
                         const final_y = rot.y; // IMPORTANT: Use rot.y to capture the tilt!
                         
                         polyCoords[side].x.push(final_x);
-                        polyCoords[side].y.push(final_y); 
+                        polyCoords[side].y.push(p.y); 
                     });
                 }
             });
