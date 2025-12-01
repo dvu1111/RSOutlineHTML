@@ -472,8 +472,8 @@
                         const final_x = rot.x + latGlobal;
                         const final_y = rot.y; // IMPORTANT: Use rot.y to capture the tilt!
                         
-                        polyCoords[side].x.push(rot.x);
-                        polyCoords[side].y.push(ty); 
+                        polyCoords[side].x.push(final_x);
+                        polyCoords[side].y.push(final_y); 
                     });
                 }
             });
